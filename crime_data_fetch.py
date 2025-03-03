@@ -59,9 +59,20 @@ def get_crime_street_level_postcode(postcode, date=None):
 def list_crimes_to_df(list_crimes):
     return pd.json_normalize(data, sep='_')
 
+def list_crimes_to_list_coordinates(list_crimes):
+    list_coordinates = [
+        (crime['location']['latitude'], 
+        crime['location']['longitude'])
+        for crime in list_crimes
+    ]
+    return list_coordinates
+
 if __name__ == "__main__":
     data = get_crime_street_level_postcode("B5 7TS", "2024-01")
+    coordinates = list_crimes_to_list_coordinates(data)
     df = list_crimes_to_df(data)
+
+    # print(coordinates)
 
     print(df.columns)
     print(df.head())
