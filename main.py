@@ -19,7 +19,8 @@ if "crime_data" not in st.session_state:
 
 # Create base map
 center = [52, -1]
-m = folium.Map(location=[52, -1], zoom_start=7)
+zoom = 7
+m = folium.Map(location=center, zoom_start=zoom)
 fg = folium.FeatureGroup(name="Marker")
 
 draw_options={
@@ -44,9 +45,7 @@ if st.session_state["selected_location"]:
             [lat, lon], tooltip="Selected location"
         ))
     center = [lat,lon]
-
-    # Button to fetch crime data
-    # if st.button("Get Crime Data for Selected Point"):
+    # zoom = 10
     st.session_state["crime_data"] = list_crimes_to_list_coordinates(get_crime_street_level_point(lat, lon))
 
 # Postcode input
@@ -63,17 +62,18 @@ for (lat, lon), count in crime_counts.items():
     fg.add_child(
         folium.Circle(
             location=[lat, lon],
-            radius=2 + count * 5,  # Scale size based on occurrences
+            radius=3 + count * 4,  # Scale size based on occurrences
             color='red',
             fill=True,
             fill_color='red',
             fill_opacity=0.2,
-            popup=f"Crimes: {count}"
+            tooltip=f"Crimes: {count}"
         ))
 
 # Display map
 map_data = st_folium(m, 
     feature_group_to_add=fg,
+    zoom=zoom,
     height=500, 
     width=700, 
     key='map',
