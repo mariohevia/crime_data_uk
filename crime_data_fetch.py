@@ -8,11 +8,13 @@ def get_lat_long_from_postcode(postcode):
     response = requests.get(url)
     response_json = response.json()
     if "error" in response_json:
-        print(response_json["error"])
-        return 0, 0
+        error = response_json["error"]
+        return False, 52, -1, error
     else:
-        return (response_json["result"]["latitude"], 
-                response_json["result"]["longitude"])
+        return (True,
+                response_json["result"]["latitude"], 
+                response_json["result"]["longitude"],
+                "")
 
 def is_valid_date_format(date_str):
     try:
