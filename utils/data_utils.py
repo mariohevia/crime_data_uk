@@ -7,3 +7,5 @@ def add_pills_filter_df(df=pd.DataFrame()):
     if df.shape[0] != 0:
         filtered_df = df[df['category'].isin(selection)].copy()
         return filtered_df
+    else:
+        return df.copy()
