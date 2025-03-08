@@ -59,4 +59,5 @@ map_data = st_folium(map_postcode,
     height=500, 
     width=700, 
     key='map_postcode',
+    returned_objects=[],
     center=center)

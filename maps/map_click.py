@@ -54,4 +54,5 @@ map_data = st_folium(map_click,
     height=500, 
     width=700, 
     key='map_click',
+    returned_objects=["last_clicked"],
     center=center)

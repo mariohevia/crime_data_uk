@@ -65,4 +65,5 @@ map_data = st_folium(map_area,
     height=500, 
     width=700, 
     key='map_area',
+    returned_objects=["last_active_drawing"],
     center=center)
