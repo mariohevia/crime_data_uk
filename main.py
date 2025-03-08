@@ -1,9 +1,4 @@
-
-from crime_data_fetch import get_crime_street_level_point, get_lat_long_from_postcode, list_crimes_to_list_coordinates
 import streamlit as st
-import folium
-from streamlit_folium import st_folium
-from collections import Counter
 
 map_click_page = st.Page(
     "maps/map_click.py", title="Clickable Crime Map", icon=":material/location_on:", default=True

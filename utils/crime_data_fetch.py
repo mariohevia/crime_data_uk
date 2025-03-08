@@ -59,7 +59,7 @@ def get_crime_street_level_postcode(postcode, date=None):
     return get_crime_street_level_point(lat, long, date)
 
 def list_crimes_to_df(list_crimes):
-    return pd.json_normalize(data, sep='_')
+    return pd.json_normalize(list_crimes, sep='_')
 
 def list_crimes_to_list_coordinates(list_crimes):
     list_coordinates = [
