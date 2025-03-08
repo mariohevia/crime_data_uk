@@ -1,5 +1,6 @@
 from utils.crime_data_fetch import get_crime_street_level_area, list_crimes_to_df
 from utils.map_utils import color_function, add_crime_counts_to_map
+from utils.data_utils import add_pills_filter_df
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
@@ -48,10 +49,14 @@ if st.session_state["selected_location_area"]:
     zoom = 13
     st.session_state["crime_data_area"] = list_crimes_to_df(get_crime_street_level_area(st.session_state["selected_location_area"]))
 
+    # Filters the data to include only the crimes with certain categories
+    st.session_state["crime_data_area"] = add_pills_filter_df(st.session_state["crime_data_area"])
     # Count and plot crime occurrences
     add_crime_counts_to_map(st.session_state["crime_data_area"], fg)
 else: 
     st.write("Selected location: ")
+    # Shows the pills
+    add_pills_filter_df()
 
 # Display map
 map_data = st_folium(map_area, 
