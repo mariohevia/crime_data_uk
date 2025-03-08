@@ -19,4 +19,4 @@ This project uses interactive crime maps to present publicly available data on c
 + Handle errors (more than 10,000 crimes) for get_crime_street_level_area, get_crime_street_level_location, get_crime_street_level_point.
     + The API will return a 400 status code in response to a GET request longer than 4094 characters. For submitting particularly complex poly parameters, consider using POST instead. 
 
-+ Get only the useful information from maps to avoid unnecessary updates when clicking etc.
++ Get only the useful information from maps (https://folium.streamlit.app/limit_data_return) to avoid unnecessary updates when clicking etc.
