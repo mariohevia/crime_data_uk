@@ -1,4 +1,4 @@
-from utils.crime_data_fetch import get_crime_street_level_point, list_crimes_to_df
+from utils.crime_data_fetch import get_crime_street_level_area, list_crimes_to_df
 from utils.map_utils import color_function, add_crime_counts_to_map
 import streamlit as st
 import folium
@@ -34,20 +34,19 @@ Draw(export=False, draw_options=draw_options).add_to(map_area)
 if 'map_area' in st.session_state:
     if "last_active_drawing" in st.session_state['map_area'] and st.session_state['map_area']["last_active_drawing"] != None:
         coordinates = st.session_state['map_area']["last_active_drawing"]["geometry"]["coordinates"][0]
-        lon, lat = coordinates[0]
-        st.session_state["selected_location_area"] = {"lat": lat, "lng": lon}
+        st.session_state["selected_location_area"] = coordinates
 
 # Display selected location
 if st.session_state["selected_location_area"]:
-    lat, lon = st.session_state["selected_location_area"]["lat"], st.session_state["selected_location_area"]["lng"]
+    # Extract longitudes and latitudes separately
+    lons, lats = zip(*st.session_state["selected_location_area"])
+    # Compute the center
+    lon = (min(lons) + max(lons)) / 2
+    lat = (min(lats) + max(lats)) / 2
     st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
-    fg.add_child(
-        folium.Marker(
-            [lat, lon], tooltip="Selected location"
-        ))
     center = [lat,lon]
     zoom = 13
-    st.session_state["crime_data_area"] = list_crimes_to_df(get_crime_street_level_point(lat, lon))
+    st.session_state["crime_data_area"] = list_crimes_to_df(get_crime_street_level_area(st.session_state["selected_location_area"]))
 
     # Count and plot crime occurrences
     add_crime_counts_to_map(st.session_state["crime_data_area"], fg)
