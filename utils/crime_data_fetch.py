@@ -118,7 +118,7 @@ def get_crime_street_level_area(list_lat_long, date=None):
     elif response.status_code == 503:
         return [], 503
     elif response.status_code == 400:
-        return [], 503
+        return [], 400
     else:
         response.raise_for_status()
 
