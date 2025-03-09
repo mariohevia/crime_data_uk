@@ -7,8 +7,6 @@ This project uses interactive crime maps to present publicly available data on c
 
 + Check taipy as an alternative option to streamlit.
 
-+ Add postcode or something similar to selected location.
-
 + Add option to show more months, not just the last one.
 
 + Show the radius for crimes in map_click.
