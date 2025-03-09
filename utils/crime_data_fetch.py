@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 from datetime import datetime
+import streamlit as st
 
 CATEGORIES =[
     'anti-social-behaviour', 'bicycle-theft', 'burglary',
@@ -9,6 +10,7 @@ CATEGORIES =[
     'vehicle-crime', 'violent-crime', 'other-crime'
 ]
 
+@st.cache_data(ttl='1d',max_entries=10000)
 def get_lat_long_from_postcode(postcode):
     postcode = postcode.replace(" ", "").upper()
     url = f"https://api.postcodes.io/postcodes/{postcode}"
@@ -60,6 +62,9 @@ def get_availability():
     response = requests.get(base_url)
     return response.json()
 
+# Returns the crimes occurred in a one mile radius from a given
+# latitude and longitude.
+@st.cache_data(ttl='1d',max_entries=1000)
 def get_crime_street_level_point(lat, long, date=None):
     base_url = "https://data.police.uk/api/crimes-street/all-crime"
     params = {
@@ -73,6 +78,7 @@ def get_crime_street_level_point(lat, long, date=None):
 
 # Returns just the crimes which occurred at the nearest location from a given
 # latitude and longitude.
+@st.cache_data(ttl='1d',max_entries=1000)
 def get_crime_street_level_location(lat, long, date=None):
     base_url = "https://data.police.uk/api/crimes-at-location"
     params = {
@@ -84,6 +90,7 @@ def get_crime_street_level_location(lat, long, date=None):
     response = requests.get(base_url, params)
     return response.json()
 
+@st.cache_data(ttl='1d',max_entries=1000)
 def get_crime_street_level_area(list_lat_long, date=None):
     base_url = "https://data.police.uk/api/crimes-street/all-crime"
     list_lat_long_str = [str(lat)+","+str(lon) for lon, lat in list_lat_long]
