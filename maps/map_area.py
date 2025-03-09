@@ -39,15 +39,25 @@ if 'map_area' in st.session_state:
 
 # Display selected location
 if st.session_state["selected_location_area"]:
+    # Getting the crimes within the bounded area
+    list_crimes, status_code = get_crime_street_level_area(st.session_state["selected_location_area"])
+    st.session_state["crime_data_area"] = list_crimes_to_df(list_crimes)
+
     # Extract longitudes and latitudes separately
     lons, lats = zip(*st.session_state["selected_location_area"])
     # Compute the center
     lon = (min(lons) + max(lons)) / 2
     lat = (min(lats) + max(lats)) / 2
-    st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
+    if status_code == 200:
+        st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
+    elif status_code == 503:
+        st.write(f"Selected location: {lat:.6f}, {lon:.6f} [More than 10,000 crimes in selected area, reduce the size of the area]")
+    elif status_code == 400:
+        st.write(f"Selected location: {lat:.6f}, {lon:.6f} [Too many vertices in selected area, create a new are with less vertices]")
+    else:
+        st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
     center = [lat,lon]
     zoom = 13
-    st.session_state["crime_data_area"] = list_crimes_to_df(get_crime_street_level_area(st.session_state["selected_location_area"]))
 
     # Filters the data to include only the crimes with certain categories
     st.session_state["crime_data_area"] = add_pills_filter_df(st.session_state["crime_data_area"])

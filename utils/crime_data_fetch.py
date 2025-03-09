@@ -10,7 +10,7 @@ CATEGORIES =[
     'vehicle-crime', 'violent-crime', 'other-crime'
 ]
 
-@st.cache_data(ttl='1d',max_entries=10000)
+@st.cache_data(ttl='1d',max_entries=10000,show_spinner=False)
 def get_lat_long_from_postcode(postcode):
     postcode = postcode.replace(" ", "").upper()
     url = f"https://api.postcodes.io/postcodes/{postcode}"
@@ -63,8 +63,8 @@ def get_availability():
     return response.json()
 
 # Returns the crimes occurred in a one mile radius from a given
-# latitude and longitude.
-@st.cache_data(ttl='1d',max_entries=1000)
+# latitude and longitude in the form of a list of dict.
+@st.cache_data(ttl='1d',max_entries=1000,show_spinner=False)
 def get_crime_street_level_point(lat, long, date=None):
     base_url = "https://data.police.uk/api/crimes-street/all-crime"
     params = {
@@ -74,11 +74,16 @@ def get_crime_street_level_point(lat, long, date=None):
     if date != None and is_valid_date_format(date):
         params['date'] = date
     response = requests.get(base_url, params)
-    return response.json()
+    if response.status_code == 200:
+        return response.json(), 200
+    elif response.status_code == 503:
+        return [], 503
+    else:
+        response.raise_for_status()
 
 # Returns just the crimes which occurred at the nearest location from a given
-# latitude and longitude.
-@st.cache_data(ttl='1d',max_entries=1000)
+# latitude and longitude in the form of a list of dict.
+@st.cache_data(ttl='1d',max_entries=1000,show_spinner=False)
 def get_crime_street_level_location(lat, long, date=None):
     base_url = "https://data.police.uk/api/crimes-at-location"
     params = {
@@ -88,9 +93,16 @@ def get_crime_street_level_location(lat, long, date=None):
     if date != None and is_valid_date_format(date):
         params['date'] = date
     response = requests.get(base_url, params)
-    return response.json()
+    if response.status_code == 200:
+        return response.json(), 200
+    elif response.status_code == 503:
+        return [], 503
+    else:
+        response.raise_for_status()
 
-@st.cache_data(ttl='1d',max_entries=1000)
+# Returns just the crimes which occurred within the shape created by a list of
+# latitude and longitude pairs in the form of a list of dict.
+@st.cache_data(ttl='1d',max_entries=1000,show_spinner=False)
 def get_crime_street_level_area(list_lat_long, date=None):
     base_url = "https://data.police.uk/api/crimes-street/all-crime"
     list_lat_long_str = [str(lat)+","+str(lon) for lon, lat in list_lat_long]
@@ -101,7 +113,14 @@ def get_crime_street_level_area(list_lat_long, date=None):
     if date != None and is_valid_date_format(date):
         params['date'] = date
     response = requests.get(base_url, params)
-    return response.json()
+    if response.status_code == 200:
+        return response.json(), 200
+    elif response.status_code == 503:
+        return [], 503
+    elif response.status_code == 400:
+        return [], 503
+    else:
+        response.raise_for_status()
 
 def list_crimes_to_df(list_crimes):
     return pd.json_normalize(list_crimes, sep='_')
@@ -117,7 +136,7 @@ def list_crimes_to_list_coordinates(list_crimes):
 if __name__ == "__main__":
     postcode = "B5 7TS"
     correct_pc, lat, lon, error = get_lat_long_from_postcode(postcode)
-    data = get_crime_street_level_point(lat, lon, "2024-01")
+    data, status_code = get_crime_street_level_point(lat, lon, "2024-01")
     boundary = get_boundary_neighbourhood(lat, lon)
     coordinates = list_crimes_to_list_coordinates(data)
     df = list_crimes_to_df(data)

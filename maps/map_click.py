@@ -29,14 +29,20 @@ if 'map_click' in st.session_state:
 # Display selected location
 if st.session_state["selected_location_click"]:
     lat, lon = st.session_state["selected_location_click"]["lat"], st.session_state["selected_location_click"]["lng"]
-    st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
+    list_crimes, status_code = get_crime_street_level_point(lat, lon)
+    st.session_state["crime_data_clickable"] = list_crimes_to_df(list_crimes)
+    if status_code==200:
+        st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
+    elif status_code==503:
+        st.write(f"Selected location: {lat:.6f}, {lon:.6f} [More than 10,000 crimes around selected point, select a new point]")
+    else:
+        st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
     fg.add_child(
         folium.Marker(
             [lat, lon], tooltip="Selected location"
         ))
     center = [lat,lon]
     zoom = 13
-    st.session_state["crime_data_clickable"] = list_crimes_to_df(get_crime_street_level_point(lat, lon))
 
     # Filters the data to include only the crimes with certain categories
     st.session_state["crime_data_clickable"] = add_pills_filter_df(st.session_state["crime_data_clickable"])

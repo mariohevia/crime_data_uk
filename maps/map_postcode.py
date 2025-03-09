@@ -31,7 +31,13 @@ if st.button("Get Crime Data"):
 # Display selected location
 if st.session_state["selected_location_postcode"]:
     lat, lon = st.session_state["selected_location_postcode"]["lat"], st.session_state["selected_location_postcode"]["lng"]
-    if st.session_state["selected_location_postcode"]["correct_pc"]:
+    list_crimes, status_code = get_crime_street_level_point(lat, lon)
+    st.session_state["crime_data_postcode"] = list_crimes_to_df(list_crimes)
+    if st.session_state["selected_location_postcode"]["correct_pc"] and status_code==200:
+        st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
+    elif st.session_state["selected_location_postcode"]["correct_pc"] and status_code==503:
+        st.write(f"Selected location: {lat:.6f}, {lon:.6f} [More than 10,000 crimes in selected postcode, select a new postcode]")
+    elif st.session_state["selected_location_postcode"]["correct_pc"]:
         st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
     else:
         st.write(f"Selected location: {st.session_state['selected_location_postcode']['error']}")
@@ -41,7 +47,6 @@ if st.session_state["selected_location_postcode"]:
         ))
     center = [lat,lon]
     zoom = 13
-    st.session_state["crime_data_postcode"] = list_crimes_to_df(get_crime_street_level_point(lat, lon))
 
     # Filters the data to include only the crimes with certain categories
     st.session_state["crime_data_postcode"] = add_pills_filter_df(st.session_state["crime_data_postcode"])
