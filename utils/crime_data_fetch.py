@@ -11,19 +11,39 @@ CATEGORIES =[
 ]
 
 @st.cache_data(ttl='1d',max_entries=10000,show_spinner=False)
-def get_lat_long_from_postcode(postcode):
+def get_postcode_info_from_postcode(postcode):
     postcode = postcode.replace(" ", "").upper()
     url = f"https://api.postcodes.io/postcodes/{postcode}"
     response = requests.get(url)
     response_json = response.json()
     if "error" in response_json:
         error = response_json["error"]
-        return False, 52, -1, error
+        postcode = "SL41PE"
+        url = f"https://api.postcodes.io/postcodes/{postcode}"
+        response = requests.get(url)
+        response_json = response.json()
+        return True, error, response_json["result"]
     else:
-        return (True,
-                response_json["result"]["latitude"], 
-                response_json["result"]["longitude"],
-                "")
+        return False, "", response_json["result"]
+
+@st.cache_data(ttl='1d',max_entries=10000,show_spinner=False)
+def get_postcode_info_from_lat_long(lat, long):
+    lat, long = str(lat), str(long)
+    url = f"https://api.postcodes.io/postcodes/"
+    params = {
+        "lon": long,
+        "lat": lat
+    }
+    response = requests.get(url, params)
+    response_json = response.json()
+    if "error" in response_json:
+        error = response_json["error"]
+        postcode = "SL41PE"
+        url = f"https://api.postcodes.io/postcodes/{postcode}"
+        response_json = response.json()
+        return True, error, response_json["result"]
+    else:
+        return False, "", response_json["result"]
 
 def is_valid_date_format(date_str):
     try:
@@ -135,7 +155,8 @@ def list_crimes_to_list_coordinates(list_crimes):
 
 if __name__ == "__main__":
     postcode = "B5 7TS"
-    correct_pc, lat, lon, error = get_lat_long_from_postcode(postcode)
+    correct_pc, error, result = get_postcode_info_from_postcode(postcode)
+    lat, lon = result["latitude"], result["longitude"]
     data, status_code = get_crime_street_level_point(lat, lon, "2024-01")
     boundary = get_boundary_neighbourhood(lat, lon)
     coordinates = list_crimes_to_list_coordinates(data)

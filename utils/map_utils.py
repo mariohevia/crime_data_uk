@@ -1,4 +1,5 @@
 import folium
+import streamlit as st
 
 def color_function(value):
     """Maps a value from 0 (green) to 25 (yellow) to 50+ (red) with gradient shades."""
@@ -34,3 +35,27 @@ def add_crime_counts_to_map(crime_df, feature_group):
                     fill_opacity=0.6,
                     tooltip=f"Crimes: {count}"
                 ))
+
+def write_selected_location_in_st(f_error, error, postcode_info, lat, lon, status_code):
+    if type(postcode_info) == list:
+        postcode_info = postcode_info[0]
+    st.subheader("Selected location")
+    if postcode_info != None and not f_error:
+        address = f"{postcode_info['postcode']}, \
+            {postcode_info['admin_ward']}, \
+            {postcode_info['admin_district']}\
+            \n{postcode_info['region']}, \
+            {postcode_info['country']}\
+            \nLatitude: {lat:.6f}, Longitude: {lon:.6f}"
+    else:
+        address = f"Latitude: {lat:.6f}, Longitude: {lon:.6f}"
+    if status_code==200 and not f_error:
+        st.write(address)
+    if status_code==503:
+        st.write("Crime API error: More than 10,000 crimes in selected region.")
+    elif status_code==400:
+        st.write("Crime API error: Too many vertices in selected area, create a new are with less vertices.")
+    elif status_code!=200:
+        st.write(f"Crime API error: Unkown error, status_code {status_code}.")
+    if f_error:
+        st.write(f"Postcode error: {error}")

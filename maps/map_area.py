@@ -1,5 +1,5 @@
-from utils.crime_data_fetch import get_crime_street_level_area, list_crimes_to_df
-from utils.map_utils import color_function, add_crime_counts_to_map
+from utils.crime_data_fetch import get_crime_street_level_area, get_postcode_info_from_lat_long, list_crimes_to_df
+from utils.map_utils import color_function, add_crime_counts_to_map, write_selected_location_in_st
 from utils.data_utils import add_pills_filter_df
 import streamlit as st
 import folium
@@ -48,14 +48,15 @@ if st.session_state["selected_location_area"]:
     # Compute the center
     lon = (min(lons) + max(lons)) / 2
     lat = (min(lats) + max(lats)) / 2
-    if status_code == 200:
-        st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
-    elif status_code == 503:
-        st.write(f"Selected location: {lat:.6f}, {lon:.6f} [More than 10,000 crimes in selected area, reduce the size of the area]")
-    elif status_code == 400:
-        st.write(f"Selected location: {lat:.6f}, {lon:.6f} [Too many vertices in selected area, create a new are with less vertices]")
-    else:
-        st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
+    f_error, error, postcode_info  = get_postcode_info_from_lat_long(lat, lon)
+    write_selected_location_in_st(
+        f_error, 
+        error, 
+        postcode_info, 
+        lat, 
+        lon, 
+        status_code
+    )
     center = [lat,lon]
     zoom = 13
 
@@ -64,7 +65,7 @@ if st.session_state["selected_location_area"]:
     # Count and plot crime occurrences
     add_crime_counts_to_map(st.session_state["crime_data_area"], fg)
 else: 
-    st.write("Selected location: ")
+    st.subheader("Selected location")
     # Shows the pills
     add_pills_filter_df()
 

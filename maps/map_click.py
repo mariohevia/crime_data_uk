@@ -1,5 +1,5 @@
-from utils.crime_data_fetch import get_crime_street_level_point, list_crimes_to_df
-from utils.map_utils import color_function, add_crime_counts_to_map
+from utils.crime_data_fetch import get_crime_street_level_point, list_crimes_to_df, get_postcode_info_from_lat_long
+from utils.map_utils import color_function, add_crime_counts_to_map, write_selected_location_in_st
 from utils.data_utils import add_pills_filter_df
 import streamlit as st
 import folium
@@ -31,12 +31,15 @@ if st.session_state["selected_location_click"]:
     lat, lon = st.session_state["selected_location_click"]["lat"], st.session_state["selected_location_click"]["lng"]
     list_crimes, status_code = get_crime_street_level_point(lat, lon)
     st.session_state["crime_data_clickable"] = list_crimes_to_df(list_crimes)
-    if status_code==200:
-        st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
-    elif status_code==503:
-        st.write(f"Selected location: {lat:.6f}, {lon:.6f} [More than 10,000 crimes around selected point, select a new point]")
-    else:
-        st.write(f"Selected location: {lat:.6f}, {lon:.6f}")
+    f_error, error, postcode_info  = get_postcode_info_from_lat_long(lat, lon)
+    write_selected_location_in_st(
+        f_error, 
+        error, 
+        postcode_info, 
+        lat, 
+        lon, 
+        status_code
+    )
     fg.add_child(
         folium.Marker(
             [lat, lon], tooltip="Selected location"
@@ -49,7 +52,7 @@ if st.session_state["selected_location_click"]:
     # Count and plot crime occurrences
     add_crime_counts_to_map(st.session_state["crime_data_clickable"], fg)
 else: 
-    st.write("Selected location: ")
+    st.subheader("Selected location")
     # Shows the pills
     add_pills_filter_df()
 
