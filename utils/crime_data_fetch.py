@@ -96,10 +96,8 @@ def get_crime_street_level_point(lat, long, date=None):
     response = requests.get(base_url, params)
     if response.status_code == 200:
         return response.json(), 200
-    elif response.status_code == 503:
-        return [], 503
     else:
-        response.raise_for_status()
+        return [], response.status_code
 
 # Returns just the crimes which occurred at the nearest location from a given
 # latitude and longitude in the form of a list of dict.
@@ -115,10 +113,8 @@ def get_crime_street_level_location(lat, long, date=None):
     response = requests.get(base_url, params)
     if response.status_code == 200:
         return response.json(), 200
-    elif response.status_code == 503:
-        return [], 503
     else:
-        response.raise_for_status()
+        return [], response.status_code
 
 # Returns just the crimes which occurred within the shape created by a list of
 # latitude and longitude pairs in the form of a list of dict.
@@ -135,12 +131,8 @@ def get_crime_street_level_area(list_lat_long, date=None):
     response = requests.get(base_url, params)
     if response.status_code == 200:
         return response.json(), 200
-    elif response.status_code == 503:
-        return [], 503
-    elif response.status_code == 400:
-        return [], 400
     else:
-        response.raise_for_status()
+        return [], response.status_code
 
 def list_crimes_to_df(list_crimes):
     return pd.json_normalize(list_crimes, sep='_')

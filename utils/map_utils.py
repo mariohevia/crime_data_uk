@@ -52,10 +52,10 @@ def write_selected_location_in_st(f_error, error, postcode_info, lat, lon, statu
     if status_code==200 and not f_error:
         st.write(address)
     if status_code==503:
-        st.write("Crime API error: More than 10,000 crimes in selected region.")
+        st.write("Crime API error: More than 10,000 crimes in selected region. Retry a different region.")
     elif status_code==400:
-        st.write("Crime API error: Too many vertices in selected area, create a new are with less vertices.")
+        st.write("Crime API error: Too many vertices in selected area. Create a new are with less vertices.")
     elif status_code!=200:
-        st.write(f"Crime API error: Unkown error, status_code {status_code}.")
+        st.write(f"Crime API error: Unkown error, status_code {status_code}. Retry query.")
     if f_error:
         st.write(f"Postcode error: {error}")
