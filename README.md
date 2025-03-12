@@ -17,3 +17,9 @@ This project uses interactive crime maps to present publicly available data on c
 + Show some statistics below the map of the crimes shown.
 
 + Mention that for locations in Scotland, only the British Transport Police provide data for Scotland, therefore, crime levels may appear much lower than they really are. 
+
++ Move crime category and selected location to below the map.
+
++ Accept enter as button click in the postcode map.
+
++ Add project to my website as an embedding.

@@ -1,5 +1,6 @@
 import folium
 import streamlit as st
+from utils.crime_data_fetch import TO_PRETTY_CATEGORIES
 
 def color_function(value):
     """Maps a value from 0 (green) to 25 (yellow) to 50+ (red) with gradient shades."""
@@ -23,17 +24,29 @@ def color_function(value):
 def add_crime_counts_to_map(crime_df, feature_group):
     if crime_df.shape[0]>0:
         crime_counts = crime_df.value_counts(subset=['location_latitude', 'location_longitude'], sort=False)
-        for (lat, lon), count in crime_counts.items():
+        # Count crimes per category at each (lat, lon)
+        category_counts = crime_df.groupby(['location_latitude', 'location_longitude', 'category']).size()
+
+        for (lat, lon), total_count in crime_counts.items():
+            # Get crime counts for different categories at this location
+            category_data = category_counts.loc[lat, lon] if (lat, lon) in category_counts.index else {}
+            
+            # Format the category breakdown
+            category_tooltip = "<br>".join([f"{TO_PRETTY_CATEGORIES[cat]}: {count}" for cat, count in category_data.items()])
+
+            # Tooltip text
+            tooltip_text = f"Total crimes: {total_count}<br>{category_tooltip}"
+
             feature_group.add_child(
                 folium.Circle(
                     location=[lat, lon],
-                    radius=3 + count * 2,  # Scale size based on occurrences
-                    color=color_function(count),
+                    radius=3 + total_count * 2,  # Scale size based on occurrences
+                    color=color_function(total_count),
                     # stroke=False,
                     fill=True,
-                    fill_color=color_function(count),
+                    fill_color=color_function(total_count),
                     fill_opacity=0.6,
-                    tooltip=f"Crimes: {count}"
+                    tooltip=tooltip_text
                 ))
 
 def write_selected_location_in_st(f_error, error, postcode_info, lat, lon, status_code):

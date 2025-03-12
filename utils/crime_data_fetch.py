@@ -10,6 +10,25 @@ CATEGORIES =[
     'vehicle-crime', 'violent-crime', 'other-crime'
 ]
 
+TO_PRETTY_CATEGORIES = {
+    'anti-social-behaviour': 'Anti-social behaviour', 
+    'bicycle-theft': 'Bicycle theft', 
+    'burglary': 'Burglary', 
+    'criminal-damage-arson': 'Criminal damage and arson', 
+    'drugs': 'Drugs', 
+    'other-theft': 'Other theft', 
+    'possession-of-weapons': 'Possession of weapons', 
+    'public-order': 'Public order', 
+    'robbery': 'Robbery', 
+    'shoplifting': 'Shoplifting', 
+    'theft-from-the-person': 'Theft from the person', 
+    'vehicle-crime': 'Vehicle crime', 
+    'violent-crime': 'Violent crime', 
+    'other-crime': 'Other crime'
+}
+
+FROM_PRETTY_CATEGORIES = {v: k for k, v in TO_PRETTY_CATEGORIES.items()}
+
 @st.cache_data(ttl='1d',max_entries=10000,show_spinner=False)
 def get_postcode_info_from_postcode(postcode):
     postcode = postcode.replace(" ", "").upper()
