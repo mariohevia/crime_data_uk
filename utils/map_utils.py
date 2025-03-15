@@ -1,6 +1,7 @@
 import folium
 import streamlit as st
 from utils.crime_data_fetch import TO_PRETTY_CATEGORIES
+import math
 
 def color_function(value):
     """Maps a value from 0 (green) to 25 (yellow) to 50+ (red) with gradient shades."""
@@ -21,13 +22,19 @@ def color_function(value):
 
     return "#ff0000"  # Red for values above 50
 
+# TODO: Should this function be moved to a utils.py file?
+def _normalise(value, max_count, scale=60):
+    return (value / max_count) * scale if max_count > scale else value
+
 def add_crime_counts_to_map(crime_df, feature_group):
     if crime_df.shape[0]>0:
         crime_counts = crime_df.value_counts(subset=['location_latitude', 'location_longitude'], sort=False)
+        max_counts = crime_counts.max()
         # Count crimes per category at each (lat, lon)
         category_counts = crime_df.groupby(['location_latitude', 'location_longitude', 'category']).size()
 
         for (lat, lon), total_count in crime_counts.items():
+            norm_total_count = _normalise(total_count, max_counts)
             # Get crime counts for different categories at this location
             category_data = category_counts.loc[lat, lon] if (lat, lon) in category_counts.index else {}
             
@@ -40,11 +47,11 @@ def add_crime_counts_to_map(crime_df, feature_group):
             feature_group.add_child(
                 folium.Circle(
                     location=[lat, lon],
-                    radius=3 + total_count * 2,  # Scale size based on occurrences
-                    color=color_function(total_count),
+                    radius=10 + norm_total_count * 2,  # Scale size based on occurrences
+                    color=color_function(norm_total_count),
                     # stroke=False,
                     fill=True,
-                    fill_color=color_function(total_count),
+                    fill_color=color_function(norm_total_count),
                     fill_opacity=0.6,
                     tooltip=tooltip_text
                 ))
@@ -67,7 +74,7 @@ def write_selected_location_in_st(f_error, error, postcode_info, lat, lon, statu
     if status_code==503:
         st.write("Crime API error: More than 10,000 crimes in selected region. Retry a different region.")
     elif status_code==400:
-        st.write("Crime API error: Too many vertices in selected area. Create a new are with less vertices.")
+        st.write("Crime API error: Too many vertices in selected area. Create a new area with less vertices.")
     elif status_code!=200:
         st.write(f"Crime API error: Unkown error, status_code {status_code}. Retry query.")
     if f_error:
