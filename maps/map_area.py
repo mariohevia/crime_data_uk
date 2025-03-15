@@ -1,6 +1,6 @@
-from utils.crime_data_fetch import get_crime_street_level_area, get_postcode_info_from_lat_long, list_crimes_to_df
+from utils.crime_data_fetch import get_crime_street_level_area_dates, get_postcode_info_from_lat_long, list_crimes_to_df
 from utils.map_utils import color_function, add_crime_counts_to_map, write_selected_location_in_st
-from utils.data_utils import add_pills_filter_df
+from utils.data_utils import add_pills_filter_df, add_start_end_month
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
@@ -37,10 +37,13 @@ if 'map_area' in st.session_state:
         coordinates = st.session_state['map_area']["last_active_drawing"]["geometry"]["coordinates"][0]
         st.session_state["selected_location_area"] = coordinates
 
-# Display selected location
+# Display date selectors and store a list of dates in st.session_state[key+"list_crime_dates"]
+add_start_end_month(key="map_area_")
+
+# Display crimes in selected location
 if st.session_state["selected_location_area"]:
     # Getting the crimes within the bounded area
-    list_crimes, status_code = get_crime_street_level_area(st.session_state["selected_location_area"])
+    list_crimes, status_code = get_crime_street_level_area_dates(st.session_state["selected_location_area"], st.session_state["map_area_list_crime_dates"])
     st.session_state["crime_data_area"] = list_crimes_to_df(list_crimes)
 
     # Extract longitudes and latitudes separately
@@ -49,14 +52,6 @@ if st.session_state["selected_location_area"]:
     lon = (min(lons) + max(lons)) / 2
     lat = (min(lats) + max(lats)) / 2
     f_error, error, postcode_info  = get_postcode_info_from_lat_long(lat, lon)
-    write_selected_location_in_st(
-        f_error, 
-        error, 
-        postcode_info, 
-        lat, 
-        lon, 
-        status_code
-    )
     center = [lat,lon]
     zoom = 13
 
@@ -65,7 +60,6 @@ if st.session_state["selected_location_area"]:
     # Count and plot crime occurrences
     add_crime_counts_to_map(st.session_state["crime_data_area"], fg)
 else: 
-    st.subheader("Selected location")
     # Shows the pills
     add_pills_filter_df()
 
@@ -78,3 +72,16 @@ map_data = st_folium(map_area,
     key='map_area',
     returned_objects=["last_active_drawing"],
     center=center)
+
+# Display selected location
+if st.session_state["selected_location_area"]:
+    write_selected_location_in_st(
+        f_error, 
+        error, 
+        postcode_info, 
+        lat, 
+        lon, 
+        status_code
+    )
+else:
+    st.subheader("Selected location")

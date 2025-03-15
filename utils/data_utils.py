@@ -1,6 +1,7 @@
 import pandas as pd
-from utils.crime_data_fetch import FROM_PRETTY_CATEGORIES
+from utils.crime_data_fetch import FROM_PRETTY_CATEGORIES,get_availability
 import streamlit as st
+from datetime import datetime, timedelta
 
 def add_pills_filter_df(df=pd.DataFrame()):
     pretty_selection = st.pills("Crime Category", FROM_PRETTY_CATEGORIES.keys(), selection_mode="multi", default=FROM_PRETTY_CATEGORIES.keys())
@@ -10,3 +11,98 @@ def add_pills_filter_df(df=pd.DataFrame()):
         return filtered_df
     else:
         return df.copy()
+
+def _generate_date_range(start_year, start_month, end_year, end_month):
+    dates = []
+    year, month = start_year, start_month
+
+    while (year, month) <= (end_year, end_month):
+        dates.append(f"{year:04d}-{month:02d}")
+        if month == 12:
+            year += 1
+            month = 1
+        else:
+            month += 1
+    
+    return dates
+
+def add_start_end_month(key=""):
+    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    month_map = {i+1: name for i, name in enumerate(month_names)}
+    reverse_month_map = {name: i+1 for i, name in enumerate(month_names)}
+    if key+"valid_dates" not in st.session_state:
+        valid_dates = sorted([i['date'] for i in get_availability()])
+        if valid_dates == []:
+            current_date = datetime.today()
+            month = (current_date.month - 3) % 12 or 12  # Handle month underflow
+            year = current_date.year - (1 if current_date.month <= 3 else 0)
+            # Format as "YYYY-MM"
+            valid_dates = [f"{year:04d}-{month:02d}"]
+
+        valid_years = sorted(set(int(date.split("-")[0]) for date in valid_dates), reverse=True)
+        valid_months = {y:[month_map[int(date.split("-")[1])] for date in valid_dates if int(date.split("-")[0]) == y] for y in valid_years}
+        st.session_state[key+"valid_dates"] = {
+            "valid_years":valid_years,
+            "valid_months":valid_months,
+            }
+    if key+"start_date" not in st.session_state:
+        st.session_state[key+"start_date"] = {
+            "start_month":month_names[0],
+            "start_year":st.session_state[key+"valid_dates"]["valid_years"][0],
+            }
+    if key+"end_date" not in st.session_state:
+        st.session_state[key+"end_date"] = {
+            "end_month":month_names[0],
+            "end_year":st.session_state[key+"valid_dates"]["valid_years"][0],
+            }
+
+    # Update functions used to avoid bug where changing one selectbox twice in a
+    # row would not work the second time.
+    def update_start_year():
+        st.session_state[key+"start_date"]["start_year"] = st.session_state[key+"start_year"]
+    def update_start_month():
+        st.session_state[key+"start_date"]["start_month"] = st.session_state[key+"start_month"]
+    def update_end_year():
+        st.session_state[key+"end_date"]["end_year"] = st.session_state[key+"end_year"]
+    def update_end_month():
+        st.session_state[key+"end_date"]["end_month"] = st.session_state[key+"end_month"]
+
+    col1, col2, _, _, col3, col4 = st.columns(6)
+    # Month selection
+    years=st.session_state[key+"valid_dates"]["valid_years"]
+    with col2:
+        if st.session_state[key+"start_date"]["start_year"] in years:
+            idx_start_year = years.index(st.session_state[key+"start_date"]["start_year"])
+        else:
+            idx_start_year = 0
+        start_year = st.selectbox("Start Year", years, index=idx_start_year, key=key+"start_year", on_change=update_start_year)
+    start_months=st.session_state[key+"valid_dates"]["valid_months"][start_year]
+    with col1:
+        if st.session_state[key+"start_date"]["start_month"] in start_months:
+            idx_start_month = start_months.index(st.session_state[key+"start_date"]["start_month"])
+        else:
+            idx_start_month = 0
+        start_month = st.selectbox("Start Month", start_months, index=idx_start_month, key=key+"start_month", on_change=update_start_month)
+    with col4:
+        end_years = [y for y in years if y>=start_year]
+        if st.session_state[key+"end_date"]["end_year"] in end_years:
+            idx_end_year = end_years.index(st.session_state[key+"end_date"]["end_year"])
+        else:
+            idx_end_year = 0
+        end_year = st.selectbox("End Year", end_years, index=idx_end_year, key=key+"end_year", on_change=update_end_year)
+    if end_year!=start_year:
+        end_months=st.session_state[key+"valid_dates"]["valid_months"][end_year]
+    else:
+        end_months=st.session_state[key+"valid_dates"]["valid_months"][end_year]
+        idx_start_month=end_months.index(start_month)
+        end_months=end_months[idx_start_month:]
+    with col3:
+        if st.session_state[key+"end_date"]["end_month"] in end_months:
+            idx_end_month = end_months.index(st.session_state[key+"end_date"]["end_month"])
+        else:
+            idx_end_month = 0
+        end_month = st.selectbox("End Month", end_months, index=idx_end_month, key=key+"end_month", on_change=update_end_month)
+
+    start_month = reverse_month_map[start_month]
+    end_month = reverse_month_map[end_month]
+    st.session_state[key+"list_crime_dates"]=_generate_date_range(start_year, start_month, end_year, end_month)

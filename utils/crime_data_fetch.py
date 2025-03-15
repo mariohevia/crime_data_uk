@@ -29,7 +29,7 @@ TO_PRETTY_CATEGORIES = {
 
 FROM_PRETTY_CATEGORIES = {v: k for k, v in TO_PRETTY_CATEGORIES.items()}
 
-@st.cache_data(ttl='1d',max_entries=10000,show_spinner=False)
+@st.cache_data(ttl='30d',max_entries=10000,show_spinner=False)
 def get_postcode_info_from_postcode(postcode):
     postcode = postcode.replace(" ", "").upper()
     url = f"https://api.postcodes.io/postcodes/{postcode}"
@@ -45,7 +45,7 @@ def get_postcode_info_from_postcode(postcode):
     else:
         return False, "", response_json["result"]
 
-@st.cache_data(ttl='1d',max_entries=10000,show_spinner=False)
+@st.cache_data(ttl='30d',max_entries=10000,show_spinner=False)
 def get_postcode_info_from_lat_long(lat, long):
     lat, long = str(lat), str(long)
     url = f"https://api.postcodes.io/postcodes/"
@@ -97,13 +97,23 @@ def get_boundary_neighbourhood(lat, long):
 
 # Return a list of available data sets. 
 def get_availability():
-    base_url = "https://data.police.uk/api/crimes-street-dates"
-    response = requests.get(base_url)
-    return response.json()
+    try:
+        base_url = "https://data.police.uk/api/crimes-street-dates"
+        response = requests.get(base_url)
+        return response.json()
+    except requests.ConnectionError:
+        print("❌ Connection error! The server may be too slow or down. Reload current page.")
+        return []
+    except requests.Timeout:
+        print("❌ Request timed out! The server may be too slow or down. Reload current page.")
+        return []
+    except requests.RequestException as e:  # Catches all requests-related errors
+        print(f"❌ An error occurred: {e}. Reload current page.")
+        return []
 
 # Returns the crimes occurred in a one mile radius from a given
 # latitude and longitude in the form of a list of dict.
-@st.cache_data(ttl='1d',max_entries=1000,show_spinner=False)
+@st.cache_data(ttl='30d',max_entries=1000,show_spinner=False)
 def get_crime_street_level_point(lat, long, date=None):
     base_url = "https://data.police.uk/api/crimes-street/all-crime"
     params = {
@@ -118,9 +128,20 @@ def get_crime_street_level_point(lat, long, date=None):
     else:
         return [], response.status_code
 
+def get_crime_street_level_point_dates(lat, long, dates=[]):
+    list_crimes = []
+    status_code = 200
+    for date in dates:
+        crimes, code = get_crime_street_level_point(lat, long, date)
+        list_crimes.extend(crimes)
+        if code!=200:
+            status_code=code
+            break
+    return list_crimes, status_code
+
 # Returns just the crimes which occurred at the nearest location from a given
 # latitude and longitude in the form of a list of dict.
-@st.cache_data(ttl='1d',max_entries=1000,show_spinner=False)
+@st.cache_data(ttl='30d',max_entries=1000,show_spinner=False)
 def get_crime_street_level_location(lat, long, date=None):
     base_url = "https://data.police.uk/api/crimes-at-location"
     params = {
@@ -137,7 +158,7 @@ def get_crime_street_level_location(lat, long, date=None):
 
 # Returns just the crimes which occurred within the shape created by a list of
 # latitude and longitude pairs in the form of a list of dict.
-@st.cache_data(ttl='1d',max_entries=1000,show_spinner=False)
+@st.cache_data(ttl='30d',max_entries=1000,show_spinner=False)
 def get_crime_street_level_area(list_lat_long, date=None):
     base_url = "https://data.police.uk/api/crimes-street/all-crime"
     list_lat_long_str = [str(lat)+","+str(lon) for lon, lat in list_lat_long]
@@ -153,6 +174,17 @@ def get_crime_street_level_area(list_lat_long, date=None):
     else:
         return [], response.status_code
 
+def get_crime_street_level_area_dates(list_lat_long, dates=[]):
+    list_crimes = []
+    status_code = 200
+    for date in dates:
+        crimes, code = get_crime_street_level_area(list_lat_long, date)
+        list_crimes.extend(crimes)
+        if code!=200:
+            status_code=code
+            break
+    return list_crimes, status_code
+
 def list_crimes_to_df(list_crimes):
     return pd.json_normalize(list_crimes, sep='_')
 
@@ -165,20 +197,30 @@ def list_crimes_to_list_coordinates(list_crimes):
     return list_coordinates
 
 if __name__ == "__main__":
-    postcode = "B5 7TS"
-    correct_pc, error, result = get_postcode_info_from_postcode(postcode)
-    lat, lon = result["latitude"], result["longitude"]
-    data, status_code = get_crime_street_level_point(lat, lon, "2024-01")
-    boundary = get_boundary_neighbourhood(lat, lon)
-    coordinates = list_crimes_to_list_coordinates(data)
-    df = list_crimes_to_df(data)
-    print(df['category'].unique())
+    # postcode = "B5 7TS"
+    # correct_pc, error, result = get_postcode_info_from_postcode(postcode)
+    # lat, lon = result["latitude"], result["longitude"]
+    # data, status_code = get_crime_street_level_point(lat, lon, "2024-01")
+    # boundary = get_boundary_neighbourhood(lat, lon)
+    # coordinates = list_crimes_to_list_coordinates(data)
+    # df = list_crimes_to_df(data)
+    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    month_map = {i+1: name for i, name in enumerate(month_names)}
+    reverse_month_map = {name: i+1 for i, name in enumerate(month_names)}
+    valid_dates = sorted([i['date'] for i in get_availability()])
+    valid_years = sorted(set(int(date.split("-")[0]) for date in valid_dates), reverse=True)
+    valid_months = {y:[month_map[int(date.split("-")[1])] for date in valid_dates if int(date.split("-")[0]) == y] for y in valid_years}
+    print(valid_dates)
+    print(valid_years)
+    print(valid_months)
+    # print(df['category'].unique())
 
-    print(len(boundary))
-    print(len(coordinates))
+    # print(len(boundary))
+    # print(len(coordinates))
+    # print(data[0])
 
-    print(df.columns)
-    print(df.head())
+    # print(df.columns)
+    # print(df.head())
 
-    print(df["category"].value_counts())
-    print(df[df["category"]=="violent-crime"].head(20))
+    # print(df["category"].value_counts())
+    # print(df[df["category"]=="violent-crime"].head(20))
