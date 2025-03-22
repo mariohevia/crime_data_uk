@@ -1,6 +1,7 @@
 # UK Crime Maps
 
 <div align="center">
+
 [![Preview](readme_preview/app_preview.png)](https://crimedatauk.streamlit.app/)
 
 **A free and open-source project designed to visualise and analyse geospatial crime data from across the UK.**
