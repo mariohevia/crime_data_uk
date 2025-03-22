@@ -4,8 +4,10 @@
 
 [![Preview](readme_preview/app_preview.png)](https://crimedatauk.streamlit.app/)
 
-**A free and open-source project designed to visualise and analyse geospatial crime data from across the UK.**
 </div>
+
+**A free and open-source project designed to visualise and analyse geospatial crime data from across the UK.**
+
 This project uses interactive crime maps to present publicly available data on crime and policing in England, Wales, and Northern Ireland. Additionally, it provides valuable insights through intuitive visualisations and analyses.
 
 ---
@@ -44,9 +46,6 @@ The **UK Crime Data Explorer** leverages [Streamlit](https://streamlit.io/) as i
 + Add a way to show crimes per location and not a radius around the click in map_click.
     + Show the location boundary.
 
-+ Mention that for locations in Scotland, only the British Transport Police provide data for Scotland, therefore, crime levels may appear much lower than they really are. 
-    + Mention that Manchester does not report their crime data.
-
 + Move crime category and selected location to below the map.
 
 + Accept enter as button click in the postcode map.
@@ -62,8 +61,10 @@ The **UK Crime Data Explorer** leverages [Streamlit](https://streamlit.io/) as i
 
 + Add a compare feature to compare to different postcodes.
 
++ Consider creating a database / reading from a static file instead of using the API for faster results.
+
 --- 
 
 ## License
 
-The theme is available as open source under the terms of the [GPL-3.0 license](LICENSE).
+The web app is available as open source under the terms of the [GPL-3.0 license](LICENSE).

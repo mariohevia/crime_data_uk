@@ -56,6 +56,9 @@ def add_crime_counts_to_map(crime_df, feature_group):
                     tooltip=tooltip_text
                 ))
 
+pfa_no_data=["Greater Manchester"]
+country_lower_levels=["Scotland"]
+
 def write_selected_location_in_st(f_error, error, postcode_info, lat, lon, status_code):
     if type(postcode_info) == list:
         postcode_info = postcode_info[0]
@@ -69,6 +72,11 @@ def write_selected_location_in_st(f_error, error, postcode_info, lat, lon, statu
             \nLatitude: {lat:.6f}, Longitude: {lon:.6f}"
     else:
         address = f"Latitude: {lat:.6f}, Longitude: {lon:.6f}"
+    if postcode_info != None and not f_error:
+        if postcode_info['pfa'] in pfa_no_data:
+            st.write(f":red[{postcode_info['pfa']} does not provide complete crime data. Crime levels may appear much lower than they really are.]" )
+        if postcode_info['country'] in country_lower_levels:
+            st.write(f":red[{postcode_info['country']} does not provide complete crime data. Crime levels may appear much lower than they really are.]" )
     if status_code==200 and not f_error:
         st.write(address)
     if status_code==503:
