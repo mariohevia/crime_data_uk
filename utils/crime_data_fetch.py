@@ -143,18 +143,51 @@ def get_crime_street_level_point_dates(lat, long, dates):
 # latitude and longitude in the form of a list of dict.
 @st.cache_data(ttl='30d',max_entries=1000,show_spinner=False)
 def get_crime_street_level_location(lat, long, date=None):
+    """
+    Retrieves crime data for a specific location from the UK Police API.
+
+    This function queries the crimes-at-location endpoint of the data.police.uk API
+    to fetch crime incidents that occurred in a 1-mile radius to the specified 
+    geographic coordinates.
+    
+    Parameters:
+    -----------
+    lat : float
+        Latitude coordinate of the location.
+    long : float
+        Longitude coordinate of the location.
+    date : str, optional
+        Date in YYYY-MM format to filter crimes by month. If None, returns the latest available data.
+        Must be a valid date format as checked by is_valid_date_format().
+    
+    Returns:
+    --------
+    tuple
+        A tuple containing:
+        - First element: List of crime data dictionaries if successful, empty list if failed
+        - Second element: HTTP status code (200 for success)
+    """
+    # Define the base URL for the UK Police API endpoint
     base_url = "https://data.police.uk/api/crimes-at-location"
+    
+    # Set up the required parameters for the API request
     params = {
         'lat': lat,
         'lng': long
     }
+
+    # Add date parameter if provided and in valid format
     if date != None and is_valid_date_format(date):
         params['date'] = date
+
+    # Make the API request
     response = requests.get(base_url, params)
+
+    # Check if the request was successful
     if response.status_code == 200:
-        return response.json(), 200
+        return response.json(), 200 # Return parsed JSON data and success code
     else:
-        return [], response.status_code
+        return [], response.status_code # Return empty list and error code
 
 # Returns just the crimes which occurred within the shape created by a list of
 # latitude and longitude pairs in the form of a list of dict.
