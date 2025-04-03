@@ -5,11 +5,34 @@ import streamlit as st
 from datetime import datetime, timedelta
 
 def add_pills_filter_df(df=pd.DataFrame()):
+    """
+    Creates a category filter using Streamlit pills component and filters the DataFrame accordingly.
+    
+    This function displays a multi-selection pills component for crime categories and
+    filters the input DataFrame based on the user's selection.
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame, optional
+        DataFrame containing crime data with a 'category' column.
+        Default is an empty DataFrame.
+    
+    Returns:
+    --------
+    pandas.DataFrame
+        A filtered copy of the input DataFrame containing only the selected categories.
+        If the input DataFrame is empty, returns a copy of the original empty DataFrame.
+    """
+    # Create a pills selector with pretty category names as options
     selection = st.pills("Crime Category", api.FROM_PRETTY_CATEGORIES.keys(), selection_mode="multi", default=api.FROM_PRETTY_CATEGORIES.keys())
+
+    # Only filter if the DataFrame is not empty
     if df.shape[0] != 0:
+        # Filter the DataFrame to include only selected categories
         filtered_df = df[df['crime_type'].isin(selection)].copy()
         return filtered_df
     else:
+        # Return a copy of the original DataFrame if it's empty
         return df.copy()
 
 def _generate_date_range(start_year, start_month, end_year, end_month):
