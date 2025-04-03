@@ -1,4 +1,9 @@
 import streamlit as st
+from utils.crime_data_db import get_db_connection
+
+# Store connection in session state
+if "db_connection" not in st.session_state:
+    st.session_state["db_connection"] = get_db_connection()
 
 map_click_page = st.Page(
     "maps/map_click.py", title="Clickable Crime Map", icon=":material/location_on:", default=True

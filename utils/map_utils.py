@@ -1,6 +1,6 @@
 import folium
 import streamlit as st
-from utils.crime_data_fetch import TO_PRETTY_CATEGORIES
+import utils.crime_data_fetch as api
 import math
 
 def color_function(value):
@@ -28,10 +28,10 @@ def _normalise(value, max_count, scale=60):
 
 def add_crime_counts_to_map(crime_df, feature_group):
     if crime_df.shape[0]>0:
-        crime_counts = crime_df.value_counts(subset=['location_latitude', 'location_longitude'], sort=False)
+        crime_counts = crime_df.value_counts(subset=['latitude', 'longitude'], sort=False)
         max_counts = crime_counts.max()
         # Count crimes per category at each (lat, lon)
-        category_counts = crime_df.groupby(['location_latitude', 'location_longitude', 'category']).size()
+        category_counts = crime_df.groupby(['latitude', 'longitude', 'crime_type']).size()
 
         for (lat, lon), total_count in crime_counts.items():
             norm_total_count = _normalise(total_count, max_counts)
@@ -39,7 +39,7 @@ def add_crime_counts_to_map(crime_df, feature_group):
             category_data = category_counts.loc[lat, lon] if (lat, lon) in category_counts.index else {}
             
             # Format the category breakdown
-            category_tooltip = "<br>".join([f"{TO_PRETTY_CATEGORIES[cat]}: {count}" for cat, count in category_data.items()])
+            category_tooltip = "<br>".join([f"{cat}: {count}" for cat, count in category_data.items()])
 
             # Tooltip text
             tooltip_text = f"Total crimes: {total_count}<br>{category_tooltip}"

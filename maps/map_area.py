@@ -1,4 +1,5 @@
-from utils.crime_data_fetch import get_crime_street_level_area_dates, get_postcode_info_from_lat_long, list_crimes_to_df
+import utils.crime_data_fetch as api
+import utils.crime_data_db as db
 from utils.map_utils import color_function, add_crime_counts_to_map, write_selected_location_in_st
 from utils.data_utils import add_pills_filter_df, add_start_end_month
 import streamlit as st
@@ -43,15 +44,22 @@ add_start_end_month(key="map_area_")
 # Display crimes in selected location
 if st.session_state["selected_location_area"]:
     # Getting the crimes within the bounded area
-    list_crimes, status_code = get_crime_street_level_area_dates(st.session_state["selected_location_area"], st.session_state["map_area_list_crime_dates"])
-    st.session_state["crime_data_area"] = list_crimes_to_df(list_crimes)
-
+    if st.session_state["db_connection"] != None:
+        st.session_state["crime_data_area"] = db.get_crime_street_level_area_dates(
+            st.session_state["selected_location_area"], 
+            st.session_state["map_area_list_crime_dates"])
+        status_code = 200
+    else:
+        list_crimes, status_code = api.get_crime_street_level_area_dates(
+            st.session_state["selected_location_area"], 
+            st.session_state["map_area_list_crime_dates"])
+        st.session_state["crime_data_area"] = api.list_crimes_to_df(list_crimes)
     # Extract longitudes and latitudes separately
     lons, lats = zip(*st.session_state["selected_location_area"])
     # Compute the center
     lon = (min(lons) + max(lons)) / 2
     lat = (min(lats) + max(lats)) / 2
-    f_error, error, postcode_info  = get_postcode_info_from_lat_long(lat, lon)
+    f_error, error, postcode_info  = api.get_postcode_info_from_lat_long(lat, lon)
     center = [lat,lon]
     zoom = 13
 

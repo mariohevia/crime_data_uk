@@ -102,13 +102,13 @@ def get_availability():
         response = requests.get(base_url)
         return response.json()
     except requests.ConnectionError:
-        print("❌ Connection error! The server may be too slow or down. Reload current page.")
+        print("Connection error! The server may be too slow or down. Reload current page.")
         return []
     except requests.Timeout:
-        print("❌ Request timed out! The server may be too slow or down. Reload current page.")
+        print("Request timed out! The server may be too slow or down. Reload current page.")
         return []
     except requests.RequestException as e:  # Catches all requests-related errors
-        print(f"❌ An error occurred: {e}. Reload current page.")
+        print(f"An error occurred: {e}. Reload current page.")
         return []
 
 # Returns the crimes occurred in a one mile radius from a given
@@ -128,7 +128,7 @@ def get_crime_street_level_point(lat, long, date=None):
     else:
         return [], response.status_code
 
-def get_crime_street_level_point_dates(lat, long, dates=[]):
+def get_crime_street_level_point_dates(lat, long, dates):
     list_crimes = []
     status_code = 200
     for date in dates:
@@ -186,7 +186,14 @@ def get_crime_street_level_area_dates(list_lat_long, dates=[]):
     return list_crimes, status_code
 
 def list_crimes_to_df(list_crimes):
-    return pd.json_normalize(list_crimes, sep='_')
+    df = pd.json_normalize(list_crimes, sep='_')
+    df.rename(
+        columns={
+            'category': 'crime_type', 'persistent_id': 'crime_id', 
+            'location_latitude': 'latitude', 'location_longitude': 'longitude'}, 
+        inplace=True)
+    df['crime_type'].replace(TO_PRETTY_CATEGORIES, inplace=True)
+    return df
 
 def list_crimes_to_list_coordinates(list_crimes):
     list_coordinates = [
@@ -213,7 +220,7 @@ if __name__ == "__main__":
     print(valid_dates)
     print(valid_years)
     print(valid_months)
-    # print(df['category'].unique())
+    # print(df['crime_type'].unique())
 
     # print(len(boundary))
     # print(len(coordinates))
@@ -222,5 +229,5 @@ if __name__ == "__main__":
     # print(df.columns)
     # print(df.head())
 
-    # print(df["category"].value_counts())
-    # print(df[df["category"]=="violent-crime"].head(20))
+    # print(df["crime_type"].value_counts())
+    # print(df[df["crime_type"]=="violent-crime"].head(20))
