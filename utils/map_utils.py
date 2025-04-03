@@ -1,6 +1,6 @@
 import folium
 import streamlit as st
-from utils.crime_data_fetch import TO_PRETTY_CATEGORIES
+import utils.crime_data_fetch as api
 import math
 
 def color_function(value):
@@ -27,33 +27,61 @@ def _normalise(value, max_count, scale=60):
     return (value / max_count) * scale if max_count > scale else value
 
 def add_crime_counts_to_map(crime_df, feature_group):
+    """
+    Adds crime data as interactive circles to a Folium map.
+    
+    This function processes a DataFrame of crime data, counts occurrences at each
+    location, and adds circles to the map with size and color proportional to 
+    crime frequency. Each circle includes a tooltip showing total crimes and
+    breakdown by category.
+    
+    Parameters:
+    -----------
+    crime_df : pandas.DataFrame
+        DataFrame containing crime data with 'location_latitude', 'location_longitude',
+        and 'category' columns.
+    feature_group : folium.FeatureGroup
+        The Folium feature group to add the crime bubbles to.
+    
+    Returns:
+    --------
+    None
+        The function modifies the feature_group in place.
+    """
+    # Only proceed if the DataFrame contains data
     if crime_df.shape[0]>0:
-        crime_counts = crime_df.value_counts(subset=['location_latitude', 'location_longitude'], sort=False)
+        # Count total crimes at each unique location
+        crime_counts = crime_df.value_counts(subset=['latitude', 'longitude'], sort=False)
         max_counts = crime_counts.max()
-        # Count crimes per category at each (lat, lon)
-        category_counts = crime_df.groupby(['location_latitude', 'location_longitude', 'category']).size()
 
+        # Count crimes per category at each location
+        category_counts = crime_df.groupby(['latitude', 'longitude', 'crime_type']).size()
+
+        # Iterate through each location and its crime count
         for (lat, lon), total_count in crime_counts.items():
+            # Normalize the count for visual scaling
             norm_total_count = _normalise(total_count, max_counts)
+
             # Get crime counts for different categories at this location
             category_data = category_counts.loc[lat, lon] if (lat, lon) in category_counts.index else {}
             
-            # Format the category breakdown
-            category_tooltip = "<br>".join([f"{TO_PRETTY_CATEGORIES[cat]}: {count}" for cat, count in category_data.items()])
+            # Format the category breakdown for tooltip display
+            category_tooltip = "<br>".join([f"{cat}: {count}" for cat, count in category_data.items()])
 
-            # Tooltip text
+            # Create tooltip text
             tooltip_text = f"Total crimes: {total_count}<br>{category_tooltip}"
 
+            # Add circle marker to the map
             feature_group.add_child(
                 folium.Circle(
                     location=[lat, lon],
                     radius=10 + norm_total_count * 2,  # Scale size based on occurrences
-                    color=color_function(norm_total_count),
+                    color=color_function(norm_total_count), # Color based on crime intensity
                     # stroke=False,
                     fill=True,
                     fill_color=color_function(norm_total_count),
                     fill_opacity=0.6,
-                    tooltip=tooltip_text
+                    tooltip=tooltip_text # Interactive tooltip with crime details
                 ))
 
 pfa_no_data=["Greater Manchester"]

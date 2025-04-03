@@ -102,33 +102,66 @@ def get_availability():
         response = requests.get(base_url)
         return response.json()
     except requests.ConnectionError:
-        print("❌ Connection error! The server may be too slow or down. Reload current page.")
+        print("Connection error! The server may be too slow or down. Reload current page.")
         return []
     except requests.Timeout:
-        print("❌ Request timed out! The server may be too slow or down. Reload current page.")
+        print("Request timed out! The server may be too slow or down. Reload current page.")
         return []
     except requests.RequestException as e:  # Catches all requests-related errors
-        print(f"❌ An error occurred: {e}. Reload current page.")
+        print(f"An error occurred: {e}. Reload current page.")
         return []
 
 # Returns the crimes occurred in a one mile radius from a given
 # latitude and longitude in the form of a list of dict.
 @st.cache_data(ttl='30d',max_entries=1000,show_spinner=False)
 def get_crime_street_level_point(lat, long, date=None):
+    """
+    Retrieves crime data for a specific location from the UK Police API.
+
+    This function queries the crimes-at-location endpoint of the data.police.uk API
+    to fetch crime incidents that occurred in a 1-mile radius to the specified 
+    geographic coordinates.
+    
+    Parameters:
+    -----------
+    lat : float
+        Latitude coordinate of the location.
+    long : float
+        Longitude coordinate of the location.
+    date : str, optional
+        Date in YYYY-MM format to filter crimes by month. If None, returns the latest available data.
+        Must be a valid date format as checked by is_valid_date_format().
+    
+    Returns:
+    --------
+    tuple
+        A tuple containing:
+        - First element: List of crime data dictionaries if successful, empty list if failed
+        - Second element: HTTP status code (200 for success)
+    """
+    # Define the base URL for the UK Police API endpoint
     base_url = "https://data.police.uk/api/crimes-street/all-crime"
+
+    # Set up the required parameters for the API request
     params = {
         'lat': lat,
         'lng': long
     }
+
+    # Add date parameter if provided and in valid format
     if date != None and is_valid_date_format(date):
         params['date'] = date
-    response = requests.get(base_url, params)
-    if response.status_code == 200:
-        return response.json(), 200
-    else:
-        return [], response.status_code
 
-def get_crime_street_level_point_dates(lat, long, dates=[]):
+    # Make the API request
+    response = requests.get(base_url, params)
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        return response.json(), 200 # Return parsed JSON data and success code
+    else:
+        return [], response.status_code # Return empty list and error code
+
+def get_crime_street_level_point_dates(lat, long, dates):
     list_crimes = []
     status_code = 200
     for date in dates:
@@ -143,18 +176,51 @@ def get_crime_street_level_point_dates(lat, long, dates=[]):
 # latitude and longitude in the form of a list of dict.
 @st.cache_data(ttl='30d',max_entries=1000,show_spinner=False)
 def get_crime_street_level_location(lat, long, date=None):
+    """
+    Retrieves crime data for a specific location from the UK Police API.
+
+    This function queries the crimes-at-location endpoint of the data.police.uk API
+    to fetch crime incidents that occurred in the location from the specified 
+    geographic coordinates.
+    
+    Parameters:
+    -----------
+    lat : float
+        Latitude coordinate of the location.
+    long : float
+        Longitude coordinate of the location.
+    date : str, optional
+        Date in YYYY-MM format to filter crimes by month. If None, returns the latest available data.
+        Must be a valid date format as checked by is_valid_date_format().
+    
+    Returns:
+    --------
+    tuple
+        A tuple containing:
+        - First element: List of crime data dictionaries if successful, empty list if failed
+        - Second element: HTTP status code (200 for success)
+    """
+    # Define the base URL for the UK Police API endpoint
     base_url = "https://data.police.uk/api/crimes-at-location"
+    
+    # Set up the required parameters for the API request
     params = {
         'lat': lat,
         'lng': long
     }
+
+    # Add date parameter if provided and in valid format
     if date != None and is_valid_date_format(date):
         params['date'] = date
+
+    # Make the API request
     response = requests.get(base_url, params)
+
+    # Check if the request was successful
     if response.status_code == 200:
-        return response.json(), 200
+        return response.json(), 200 # Return parsed JSON data and success code
     else:
-        return [], response.status_code
+        return [], response.status_code # Return empty list and error code
 
 # Returns just the crimes which occurred within the shape created by a list of
 # latitude and longitude pairs in the form of a list of dict.
@@ -186,7 +252,14 @@ def get_crime_street_level_area_dates(list_lat_long, dates=[]):
     return list_crimes, status_code
 
 def list_crimes_to_df(list_crimes):
-    return pd.json_normalize(list_crimes, sep='_')
+    df = pd.json_normalize(list_crimes, sep='_')
+    df.rename(
+        columns={
+            'category': 'crime_type', 'persistent_id': 'crime_id', 
+            'location_latitude': 'latitude', 'location_longitude': 'longitude'}, 
+        inplace=True)
+    df['crime_type'].replace(TO_PRETTY_CATEGORIES, inplace=True)
+    return df
 
 def list_crimes_to_list_coordinates(list_crimes):
     list_coordinates = [
@@ -213,7 +286,7 @@ if __name__ == "__main__":
     print(valid_dates)
     print(valid_years)
     print(valid_months)
-    # print(df['category'].unique())
+    # print(df['crime_type'].unique())
 
     # print(len(boundary))
     # print(len(coordinates))
@@ -222,5 +295,5 @@ if __name__ == "__main__":
     # print(df.columns)
     # print(df.head())
 
-    # print(df["category"].value_counts())
-    # print(df[df["category"]=="violent-crime"].head(20))
+    # print(df["crime_type"].value_counts())
+    # print(df[df["crime_type"]=="violent-crime"].head(20))

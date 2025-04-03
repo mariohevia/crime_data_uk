@@ -1,6 +1,7 @@
-from utils.crime_data_fetch import get_crime_street_level_point_dates, list_crimes_to_df, get_postcode_info_from_lat_long
+import utils.crime_data_fetch as api
+import utils.crime_data_db as db
 from utils.map_utils import color_function, add_crime_counts_to_map, write_selected_location_in_st
-from utils.data_utils import add_pills_filter_df,add_start_end_month
+from utils.data_utils import add_pills_filter_df, add_start_end_month
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
@@ -31,10 +32,23 @@ add_start_end_month(key="map_click_")
 
 # Display crimes in selected location
 if st.session_state["selected_location_click"]:
-    lat, lon = st.session_state["selected_location_click"]["lat"], st.session_state["selected_location_click"]["lng"]
-    list_crimes, status_code = get_crime_street_level_point_dates(lat, lon, st.session_state["map_click_list_crime_dates"])
-    st.session_state["crime_data_clickable"] = list_crimes_to_df(list_crimes)
-    f_error, error, postcode_info  = get_postcode_info_from_lat_long(lat, lon)
+    lat, lon = (
+        st.session_state["selected_location_click"]["lat"], 
+        st.session_state["selected_location_click"]["lng"]
+    )
+    if st.session_state["db_connection"] != None:
+        st.session_state["crime_data_clickable"] = db.get_crime_street_level_point_dates(
+            lat, 
+            lon, 
+            st.session_state["map_click_list_crime_dates"])
+        status_code = 200
+    else:
+        list_crimes, status_code = api.get_crime_street_level_point_dates(
+            lat, 
+            lon, 
+            st.session_state["map_click_list_crime_dates"])
+        st.session_state["crime_data_clickable"] = api.list_crimes_to_df(list_crimes)
+    f_error, error, postcode_info  = api.get_postcode_info_from_lat_long(lat, lon)
     fg.add_child(
         folium.Marker(
             [lat, lon], tooltip="Selected location"

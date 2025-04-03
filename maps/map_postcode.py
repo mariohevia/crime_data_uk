@@ -1,4 +1,5 @@
-from utils.crime_data_fetch import get_crime_street_level_point_dates, get_postcode_info_from_postcode, list_crimes_to_df
+import utils.crime_data_fetch as api
+import utils.crime_data_db as db
 from utils.map_utils import color_function, add_crime_counts_to_map, write_selected_location_in_st
 from utils.data_utils import add_pills_filter_df, add_start_end_month
 import streamlit as st
@@ -22,14 +23,22 @@ zoom = 7
 map_postcode = folium.Map(location=center, zoom_start=zoom)
 fg = folium.FeatureGroup(name="Marker")
 
+if "previous_postcode" not in st.session_state:
+    st.session_state["previous_postcode"] = ""
+
 # Postcode input
-col1, col2 = st.columns(2)
+col1, _, _ = st.columns(3)
 with col1:
     postcode = st.text_input("Enter a postcode:",label_visibility="collapsed")
-with col2:
-    if st.button("Get Crime Data"):
-        f_error, error, postcode_info  = get_postcode_info_from_postcode(postcode)
+    # Checks if there is a change in the postcode and if there is it queries the postcode
+    if postcode != st.session_state["previous_postcode"]:
+        st.session_state["previous_postcode"] = postcode
+        f_error, error, postcode_info  = api.get_postcode_info_from_postcode(postcode)
         st.session_state["selected_location_postcode"] = {"f_error":f_error, "error": error, "postcode_info": postcode_info}
+# with col2:
+#     if st.button("Get Crime Data"):
+#         f_error, error, postcode_info  = api.get_postcode_info_from_postcode(postcode)
+#         st.session_state["selected_location_postcode"] = {"f_error":f_error, "error": error, "postcode_info": postcode_info}
 
 # Display date selectors and store a list of dates in st.session_state[key+"list_crime_dates"]
 add_start_end_month(key="map_postcode_")
@@ -40,8 +49,18 @@ if st.session_state["selected_location_postcode"]:
         st.session_state["selected_location_postcode"]["postcode_info"]["latitude"], 
         st.session_state["selected_location_postcode"]["postcode_info"]["longitude"]
     )
-    list_crimes, status_code = get_crime_street_level_point_dates(lat, lon, st.session_state["map_postcode_list_crime_dates"])
-    st.session_state["crime_data_postcode"] = list_crimes_to_df(list_crimes)
+    if st.session_state["db_connection"] != None:
+        st.session_state["crime_data_postcode"] = db.get_crime_street_level_point_dates(
+            lat, 
+            lon, 
+            st.session_state["map_postcode_list_crime_dates"])
+        status_code = 200
+    else:
+        list_crimes, status_code = api.get_crime_street_level_point_dates(
+            lat, 
+            lon, 
+            st.session_state["map_postcode_list_crime_dates"])
+        st.session_state["crime_data_postcode"] = api.list_crimes_to_df(list_crimes)
     fg.add_child(
         folium.Marker(
             [lat, lon], tooltip="Selected location"

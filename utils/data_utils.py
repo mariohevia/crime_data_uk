@@ -1,15 +1,38 @@
 import pandas as pd
-from utils.crime_data_fetch import FROM_PRETTY_CATEGORIES,get_availability
+import utils.crime_data_fetch as api
+import utils.crime_data_db as db
 import streamlit as st
 from datetime import datetime, timedelta
 
 def add_pills_filter_df(df=pd.DataFrame()):
-    pretty_selection = st.pills("Crime Category", FROM_PRETTY_CATEGORIES.keys(), selection_mode="multi", default=FROM_PRETTY_CATEGORIES.keys())
-    selection = [FROM_PRETTY_CATEGORIES[cat] for cat in pretty_selection]
+    """
+    Creates a category filter using Streamlit pills component and filters the DataFrame accordingly.
+    
+    This function displays a multi-selection pills component for crime categories and
+    filters the input DataFrame based on the user's selection.
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame, optional
+        DataFrame containing crime data with a 'category' column.
+        Default is an empty DataFrame.
+    
+    Returns:
+    --------
+    pandas.DataFrame
+        A filtered copy of the input DataFrame containing only the selected categories.
+        If the input DataFrame is empty, returns a copy of the original empty DataFrame.
+    """
+    # Create a pills selector with pretty category names as options
+    selection = st.pills("Crime Category", api.FROM_PRETTY_CATEGORIES.keys(), selection_mode="multi", default=api.FROM_PRETTY_CATEGORIES.keys())
+
+    # Only filter if the DataFrame is not empty
     if df.shape[0] != 0:
-        filtered_df = df[df['category'].isin(selection)].copy()
+        # Filter the DataFrame to include only selected categories
+        filtered_df = df[df['crime_type'].isin(selection)].copy()
         return filtered_df
     else:
+        # Return a copy of the original DataFrame if it's empty
         return df.copy()
 
 def _generate_date_range(start_year, start_month, end_year, end_month):
@@ -31,7 +54,10 @@ def add_start_end_month(key=""):
     month_map = {i+1: name for i, name in enumerate(month_names)}
     reverse_month_map = {name: i+1 for i, name in enumerate(month_names)}
     if key+"valid_dates" not in st.session_state:
-        valid_dates = sorted([i['date'] for i in get_availability()])
+        if st.session_state["db_connection"] != None:
+            valid_dates = sorted(db.get_availability())
+        else:
+            valid_dates = sorted([i['date'] for i in api.get_availability()])
         if valid_dates == []:
             current_date = datetime.today()
             month = (current_date.month - 3) % 12 or 12  # Handle month underflow
@@ -46,14 +72,18 @@ def add_start_end_month(key=""):
             "valid_months":valid_months,
             }
     if key+"start_date" not in st.session_state:
+        valid_months = st.session_state[key+"valid_dates"]["valid_months"]
+        valid_years = st.session_state[key+"valid_dates"]["valid_years"]
         st.session_state[key+"start_date"] = {
-            "start_month":month_names[0],
-            "start_year":st.session_state[key+"valid_dates"]["valid_years"][0],
+            "start_month":valid_months[valid_years[0]][-1],
+            "start_year":valid_years[0],
             }
     if key+"end_date" not in st.session_state:
+        valid_months = st.session_state[key+"valid_dates"]["valid_months"]
+        valid_years = st.session_state[key+"valid_dates"]["valid_years"]
         st.session_state[key+"end_date"] = {
-            "end_month":month_names[0],
-            "end_year":st.session_state[key+"valid_dates"]["valid_years"][0],
+            "end_month":valid_months[valid_years[0]][-1],
+            "end_year":valid_years[0],
             }
 
     # Update functions used to avoid bug where changing one selectbox twice in a
