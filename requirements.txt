@@ -3,4 +3,4 @@ pandas
 folium
 streamlit_folium
 requests
-psycopg2
+psycopg2-binary
