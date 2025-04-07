@@ -3,8 +3,9 @@ import utils.crime_data_fetch as api
 import utils.crime_data_db as db
 import streamlit as st
 from datetime import datetime, timedelta
+import altair as alt
 
-def add_pills_filter_df(df=pd.DataFrame()):
+def add_pills_filter_df(df=pd.DataFrame(columns=api.DF_COLUMNS)):
     """
     Creates a category filter using Streamlit pills component and filters the DataFrame accordingly.
     
@@ -36,6 +37,7 @@ def add_pills_filter_df(df=pd.DataFrame()):
         return df.copy()
 
 def _generate_date_range(start_year, start_month, end_year, end_month):
+    # Gnerate date range
     dates = []
     year, month = start_year, start_month
 
@@ -47,12 +49,35 @@ def _generate_date_range(start_year, start_month, end_year, end_month):
         else:
             month += 1
     
-    return dates
+    # Create the extended dates list with at least 12 months
+    extended_dates = dates.copy()
+    
+    # If dates list already has 12 or more months, return it as is
+    if len(dates) >= 12:
+        return dates, extended_dates
+    
+    # Otherwise, extend the list backward to include at least 12 months
+    year, month = start_year, start_month
+    
+    while len(extended_dates) < 12:
+        # Move one month back
+        if month == 1:
+            year -= 1
+            month = 12
+        else:
+            month -= 1
+        
+        # Add the date at the beginning of the list
+        extended_dates.insert(0, f"{year:04d}-{month:02d}")
+    
+    return dates, extended_dates
 
 def add_start_end_month(key=""):
     month_names = ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sep", "Oct", "Nov", "Dec"]
     month_map = {i+1: name for i, name in enumerate(month_names)}
     reverse_month_map = {name: i+1 for i, name in enumerate(month_names)}
+    
+    # Get valid dates if not already in session state
     if key+"valid_dates" not in st.session_state:
         if st.session_state["db_connection"] != None:
             valid_dates = sorted(db.get_availability())
@@ -71,12 +96,18 @@ def add_start_end_month(key=""):
             "valid_years":valid_years,
             "valid_months":valid_months,
             }
+    
+    # Set default start and end dates if not already in session state
     if key+"start_date" not in st.session_state:
         valid_months = st.session_state[key+"valid_dates"]["valid_months"]
         valid_years = st.session_state[key+"valid_dates"]["valid_years"]
+        if len(valid_years) > 1 and (valid_months[valid_years[0]][-1] in valid_months[valid_years[1]]):
+            start_year = valid_years[1]
+        else:
+            start_year = valid_years[0]
         st.session_state[key+"start_date"] = {
             "start_month":valid_months[valid_years[0]][-1],
-            "start_year":valid_years[0],
+            "start_year":start_year,
             }
     if key+"end_date" not in st.session_state:
         valid_months = st.session_state[key+"valid_dates"]["valid_months"]
@@ -135,4 +166,55 @@ def add_start_end_month(key=""):
 
     start_month = reverse_month_map[start_month]
     end_month = reverse_month_map[end_month]
-    st.session_state[key+"list_crime_dates"]=_generate_date_range(start_year, start_month, end_year, end_month)
+    st.session_state[key+"list_crime_dates"],st.session_state[key+"stat_crime_dates"]=_generate_date_range(start_year, start_month, end_year, end_month)
+
+def add_area_plot_crime_statistics(df):
+    # Group by month and crime_type to get counts
+    crime_counts = df.groupby([pd.Grouper(key='month', freq='ME'), 'crime_type']).size().reset_index(name='count')
+    crime_counts.columns = ['Month', 'Crime Type', 'Count']
+
+    # Order by total count for each crime type
+    crime_type_order = crime_counts.groupby('Crime Type')['Count'].sum().sort_values().index.tolist()
+    
+    # Create a mapping from crime type to rank
+    crime_type_rank = {crime: i for i, crime in enumerate(crime_type_order)}
+
+    # Add a new column to the DataFrame
+    crime_counts['CrimeTypeRank'] = crime_counts['Crime Type'].map(crime_type_rank)
+
+    # Create the Altair chart
+    chart = alt.Chart(crime_counts).mark_area().encode(
+        x=alt.X('Month:T', title='Month'),
+        y=alt.Y('Count:Q', title='Number of Crimes', stack=True),
+        color=alt.Color('Crime Type:N', 
+                        title='Crime Type', 
+                        sort=crime_type_order,
+                        ).scale(scheme='tableau20'),
+        order=alt.Order(
+            'CrimeTypeRank:O',
+            sort='descending'
+        ),
+        tooltip=['Month', 'Crime Type', 'Count']
+    )
+
+    # Display the chart
+    st.subheader('Crime Counts by Type Over Time')
+    st.altair_chart(chart, use_container_width=True)
+
+def add_bar_plot_crime_statistics(df):
+    # Get total count for each crime type
+    crime_type_counts = df['crime_type'].value_counts().reset_index()
+    crime_type_counts.columns = ['Crime type', 'Count']
+    
+    # Create horizontal bar chart with Altair
+    chart = alt.Chart(crime_type_counts).mark_bar().encode(
+        y=alt.Y('Crime type:N', title='Crime Type', sort='-x'),
+        x=alt.X('Count:Q', title='Number of Crimes'),
+        tooltip=['Crime type', 'Count']
+    ).properties(
+        height=max(300, len(crime_type_counts) * 30)  # Dynamic height based on number of crime types
+    )
+    
+    # Display chart
+    st.subheader('Crime Distribution by Type')
+    st.altair_chart(chart, use_container_width=True)
