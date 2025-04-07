@@ -1,7 +1,7 @@
 import utils.crime_data_fetch as api
 import utils.crime_data_db as db
 from utils.map_utils import color_function, add_crime_counts_to_map, write_selected_location_in_st
-from utils.data_utils import add_pills_filter_df, add_start_end_month
+import utils.data_utils as dutils
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
@@ -28,7 +28,7 @@ if 'map_click' in st.session_state:
         st.session_state["selected_location_click"] = st.session_state['map_click']["last_clicked"]
 
 # Display date selectors and store a list of dates in st.session_state[key+"list_crime_dates"]
-add_start_end_month(key="map_click_")
+dutils.add_start_end_month(key="map_click_")
 
 # Display crimes in selected location
 if st.session_state["selected_location_click"]:
@@ -57,12 +57,12 @@ if st.session_state["selected_location_click"]:
     zoom = 13
 
     # Filters the data to include only the crimes with certain categories
-    st.session_state["filtered_crime_data_clickable"] = add_pills_filter_df(st.session_state["crime_data_clickable"])
+    st.session_state["filtered_crime_data_clickable"] = dutils.add_pills_filter_df(st.session_state["crime_data_clickable"])
     # Count and plot crime occurrences
     add_crime_counts_to_map(st.session_state["filtered_crime_data_clickable"], fg)
 else: 
     # Shows the pills
-    add_pills_filter_df()
+    dutils.add_pills_filter_df()
 
 # Display map
 map_data = st_folium(map_click, 
@@ -89,7 +89,7 @@ else:
 
 # Display crime statistics
 if st.session_state["selected_location_click"]:
-    add_area_plot_crime_statistics(st.session_state["filtered_crime_data_clickable"])
-    add_bar_plot_crime_statistics(st.session_state["filtered_crime_data_clickable"])
+    dutils.add_area_plot_crime_statistics(st.session_state["filtered_crime_data_clickable"])
+    dutils.add_bar_plot_crime_statistics(st.session_state["filtered_crime_data_clickable"])
 else:
     st.subheader("Crime statistics")

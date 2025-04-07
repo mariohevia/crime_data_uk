@@ -1,7 +1,7 @@
 import utils.crime_data_fetch as api
 import utils.crime_data_db as db
 from utils.map_utils import color_function, add_crime_counts_to_map, write_selected_location_in_st
-from utils.data_utils import add_pills_filter_df, add_start_end_month
+import utils.data_utils as dutils
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
@@ -41,7 +41,7 @@ with col1:
 #         st.session_state["selected_location_postcode"] = {"f_error":f_error, "error": error, "postcode_info": postcode_info}
 
 # Display date selectors and store a list of dates in st.session_state[key+"list_crime_dates"]
-add_start_end_month(key="map_postcode_")
+dutils.add_start_end_month(key="map_postcode_")
 
 # Display crimes in selected location
 if st.session_state["selected_location_postcode"]:
@@ -69,12 +69,12 @@ if st.session_state["selected_location_postcode"]:
     zoom = 13
 
     # Filters the data to include only the crimes with certain categories
-    st.session_state["filtered_crime_data_postcode"] = add_pills_filter_df(st.session_state["crime_data_postcode"])
+    st.session_state["filtered_crime_data_postcode"] = dutils.add_pills_filter_df(st.session_state["crime_data_postcode"])
     # Count and plot crime occurrences
     add_crime_counts_to_map(st.session_state["filtered_crime_data_postcode"], fg)
 else: 
     # Shows the pills
-    add_pills_filter_df()
+    dutils.add_pills_filter_df()
 
 # Display map
 map_data = st_folium(map_postcode, 
@@ -100,7 +100,7 @@ else:
 
 # Display crime statistics
 if st.session_state["selected_location_postcode"]:
-    add_area_plot_crime_statistics(st.session_state["filtered_crime_data_postcode"])
-    add_bar_plot_crime_statistics(st.session_state["filtered_crime_data_postcode"])
+    dutils.add_area_plot_crime_statistics(st.session_state["filtered_crime_data_postcode"])
+    dutils.add_bar_plot_crime_statistics(st.session_state["filtered_crime_data_postcode"])
 else:
     st.subheader("Crime statistics")

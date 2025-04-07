@@ -4,6 +4,7 @@ import psycopg2
 import os
 from datetime import date
 import time
+import utils.crime_data_fetch as api
 
 # TODO: Handle what happens if the database breaks in the middle of a run.
 @st.cache_resource
@@ -54,7 +55,7 @@ def get_crime_street_level_point_dates(lat, lon, dates, radius_meters=1609.34):
         print(lon, lat, radius_meters, date_start_fmt, date_end_fmt)
         cur.execute(query, (lon, lat, radius_meters, date_start_fmt, date_end_fmt))
         data = cur.fetchall()
-    return pd.DataFrame(data, columns=['crime_type', 'crime_id', 'month', 'latitude', 'longitude'])
+    return pd.DataFrame(data, columns=api.DF_COLUMNS)
 
 # TODO: Test this function!
 @st.cache_data(ttl='30d',max_entries=10000,show_spinner=False)
@@ -78,4 +79,4 @@ def get_crime_street_level_area_dates(polygon_points, dates):
         cur.execute(query, (polygon_wkt, date_start_fmt, date_end_fmt))
         data = cur.fetchall()
 
-    return pd.DataFrame(data, columns=['crime_type', 'crime_id', 'month', 'latitude', 'longitude'])
+    return pd.DataFrame(data, columns=api.DF_COLUMNS)

@@ -4,7 +4,7 @@ import utils.crime_data_db as db
 import streamlit as st
 from datetime import datetime, timedelta
 
-def add_pills_filter_df(df=pd.DataFrame()):
+def add_pills_filter_df(df=pd.DataFrame(columns=api.DF_COLUMNS)):
     """
     Creates a category filter using Streamlit pills component and filters the DataFrame accordingly.
     
@@ -30,7 +30,6 @@ def add_pills_filter_df(df=pd.DataFrame()):
     if df.shape[0] != 0:
         # Filter the DataFrame to include only selected categories
         filtered_df = df[df['crime_type'].isin(selection)].copy()
-        print(filtered_df.head())
         return filtered_df
     else:
         # Return a copy of the original DataFrame if it's empty
@@ -166,7 +165,7 @@ def add_start_end_month(key=""):
 
 def add_area_plot_crime_statistics(df):
     # 1. Group by month and crime_type to get counts
-    crime_counts = df.groupby([pd.Grouper(key='month', freq='M'), 'crime_type']).size().unstack(fill_value=0)
+    crime_counts = df.groupby([pd.Grouper(key='month', freq='ME'), 'crime_type']).size().unstack(fill_value=0)
 
     # 2. Reset index to make month a column
     crime_counts = crime_counts.reset_index()

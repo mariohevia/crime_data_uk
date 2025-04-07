@@ -29,6 +29,8 @@ TO_PRETTY_CATEGORIES = {
 
 FROM_PRETTY_CATEGORIES = {v: k for k, v in TO_PRETTY_CATEGORIES.items()}
 
+DF_COLUMNS = ['crime_type', 'crime_id', 'month', 'latitude', 'longitude']
+
 @st.cache_data(ttl='30d',max_entries=10000,show_spinner=False)
 def get_postcode_info_from_postcode(postcode):
     postcode = postcode.replace(" ", "").upper()
@@ -252,14 +254,19 @@ def get_crime_street_level_area_dates(list_lat_long, dates=[]):
     return list_crimes, status_code
 
 def list_crimes_to_df(list_crimes):
+    if list_crimes == []:
+        df = pd.DataFrame(columns=DF_COLUMNS)
+        df['month'] = pd.to_datetime(df['month'])
+        return df
     df = pd.json_normalize(list_crimes, sep='_')
     df.rename(
         columns={
             'category': 'crime_type', 'persistent_id': 'crime_id', 
             'location_latitude': 'latitude', 'location_longitude': 'longitude'}, 
         inplace=True)
-    df['crime_type'].replace(TO_PRETTY_CATEGORIES, inplace=True)
-    return df
+    df['crime_type'] = df['crime_type'].replace(TO_PRETTY_CATEGORIES)
+    df['month'] = pd.to_datetime(df['month'])
+    return df[DF_COLUMNS]
 
 def list_crimes_to_list_coordinates(list_crimes):
     list_coordinates = [
