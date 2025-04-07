@@ -3,6 +3,7 @@ import utils.crime_data_fetch as api
 import utils.crime_data_db as db
 import streamlit as st
 from datetime import datetime, timedelta
+import altair as alt
 
 def add_pills_filter_df(df=pd.DataFrame(columns=api.DF_COLUMNS)):
     """
@@ -100,9 +101,13 @@ def add_start_end_month(key=""):
     if key+"start_date" not in st.session_state:
         valid_months = st.session_state[key+"valid_dates"]["valid_months"]
         valid_years = st.session_state[key+"valid_dates"]["valid_years"]
+        if len(valid_years) > 1 and (valid_months[valid_years[0]][-1] in valid_months[valid_years[1]]):
+            start_year = valid_years[1]
+        else:
+            start_year = valid_years[0]
         st.session_state[key+"start_date"] = {
             "start_month":valid_months[valid_years[0]][-1],
-            "start_year":valid_years[0],
+            "start_year":start_year,
             }
     if key+"end_date" not in st.session_state:
         valid_months = st.session_state[key+"valid_dates"]["valid_months"]
@@ -164,30 +169,52 @@ def add_start_end_month(key=""):
     st.session_state[key+"list_crime_dates"],st.session_state[key+"stat_crime_dates"]=_generate_date_range(start_year, start_month, end_year, end_month)
 
 def add_area_plot_crime_statistics(df):
-    # 1. Group by month and crime_type to get counts
-    crime_counts = df.groupby([pd.Grouper(key='month', freq='ME'), 'crime_type']).size().unstack(fill_value=0)
+    # Group by month and crime_type to get counts
+    crime_counts = df.groupby([pd.Grouper(key='month', freq='ME'), 'crime_type']).size().reset_index(name='count')
+    crime_counts.columns = ['Month', 'Crime Type', 'Count']
 
-    # 2. Reset index to make month a column
-    crime_counts = crime_counts.reset_index()
+    # Order by total count for each crime type
+    crime_type_order = crime_counts.groupby('Crime Type')['Count'].sum().sort_values().index.tolist()
+    
+    # Create a mapping from crime type to rank
+    crime_type_rank = {crime: i for i, crime in enumerate(crime_type_order)}
 
-    # 3. Set the month column as the index (required for Streamlit's area_chart)
-    crime_counts = crime_counts.set_index('month')
+    # Add a new column to the DataFrame
+    crime_counts['CrimeTypeRank'] = crime_counts['Crime Type'].map(crime_type_rank)
 
-    # 4. Display the area chart
-    st.title('Crime Counts by Type Over Time')
-    st.area_chart(crime_counts)
+    # Create the Altair chart
+    chart = alt.Chart(crime_counts).mark_area().encode(
+        x=alt.X('Month:T', title='Month'),
+        y=alt.Y('Count:Q', title='Number of Crimes', stack=True),
+        color=alt.Color('Crime Type:N', 
+                        title='Crime Type', 
+                        sort=crime_type_order,
+                        ).scale(scheme='tableau20'),
+        order=alt.Order(
+            'CrimeTypeRank:O',
+            sort='descending'
+        ),
+        tooltip=['Month', 'Crime Type', 'Count']
+    )
+
+    # Display the chart
+    st.subheader('Crime Counts by Type Over Time')
+    st.altair_chart(chart, use_container_width=True)
 
 def add_bar_plot_crime_statistics(df):
     # Get total count for each crime type
     crime_type_counts = df['crime_type'].value_counts().reset_index()
-    crime_type_counts.columns = ['crime_type', 'count']
-
-    # Sort by count (optional)
-    crime_type_counts = crime_type_counts.sort_values('count')
-
-    # Set crime_type as index for Streamlit's bar_chart
-    crime_type_counts = crime_type_counts.set_index('crime_type')
-
-    # Create bar chart
-    st.title('Total Crimes by Type')
-    st.bar_chart(crime_type_counts)
+    crime_type_counts.columns = ['Crime type', 'Count']
+    
+    # Create horizontal bar chart with Altair
+    chart = alt.Chart(crime_type_counts).mark_bar().encode(
+        y=alt.Y('Crime type:N', title='Crime Type', sort='-x'),
+        x=alt.X('Count:Q', title='Number of Crimes'),
+        tooltip=['Crime type', 'Count']
+    ).properties(
+        height=max(300, len(crime_type_counts) * 30)  # Dynamic height based on number of crime types
+    )
+    
+    # Display chart
+    st.subheader('Crime Distribution by Type')
+    st.altair_chart(chart, use_container_width=True)

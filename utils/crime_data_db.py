@@ -29,8 +29,10 @@ def get_availability():
             # TODO: The code below is slower but it might be worth to put it as a MATERIALIZED VIEW
             # cur.execute("SELECT DISTINCT TO_CHAR(month, 'YYYY-MM') FROM crimes ORDER BY 1;")
             # available_dates = [row[0] for row in cur.fetchall()]
-            cur.execute("SELECT DISTINCT DATE_TRUNC('month', month)::DATE FROM crimes ORDER BY 1;")
-            available_dates = [row[0].strftime("%Y-%m") for row in cur.fetchall()]
+            # cur.execute("SELECT DISTINCT DATE_TRUNC('month', month)::DATE FROM crimes ORDER BY 1;")
+            # available_dates = [row[0].strftime("%Y-%m") for row in cur.fetchall()]
+            cur.execute("SELECT * FROM crime_months;")
+            available_dates = [row[0] for row in cur.fetchall()]
         return available_dates
     except Exception as e:
         st.error(f"Error fetching available dates: {e}")
@@ -52,10 +54,11 @@ def get_crime_street_level_point_dates(lat, lon, dates, radius_meters=1609.34):
     with st.session_state["db_connection"].cursor() as cur:
         date_start_fmt = f"{dates[0]}-01"
         date_end_fmt = f"{dates[-1]}-01"
-        print(lon, lat, radius_meters, date_start_fmt, date_end_fmt)
         cur.execute(query, (lon, lat, radius_meters, date_start_fmt, date_end_fmt))
         data = cur.fetchall()
-    return pd.DataFrame(data, columns=api.DF_COLUMNS)
+    df = pd.DataFrame(data, columns=api.DF_COLUMNS)
+    df['month'] = pd.to_datetime(df['month'])
+    return df
 
 # TODO: Test this function!
 @st.cache_data(ttl='30d',max_entries=10000,show_spinner=False)
@@ -79,4 +82,6 @@ def get_crime_street_level_area_dates(polygon_points, dates):
         cur.execute(query, (polygon_wkt, date_start_fmt, date_end_fmt))
         data = cur.fetchall()
 
-    return pd.DataFrame(data, columns=api.DF_COLUMNS)
+    df = pd.DataFrame(data, columns=api.DF_COLUMNS)
+    df['month'] = pd.to_datetime(df['month'])
+    return df

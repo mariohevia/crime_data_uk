@@ -109,6 +109,23 @@ def process_and_load_data():
         conn.commit()
         print(f"Finished processing {file_path}")
 
+    # Create and updating a view for the available months
+    cursor.execute("""
+    DO $$ 
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_matviews WHERE matviewname = 'crime_months'
+        ) THEN
+            CREATE MATERIALIZED VIEW crime_months AS 
+            SELECT DISTINCT TO_CHAR(month, 'YYYY-MM') AS month_str FROM crimes
+            ORDER BY month_str;
+        END IF;
+    END $$;
+
+    REFRESH MATERIALIZED VIEW crime_months;
+    """)
+    conn.commit()
+
     cursor.close()
     conn.close()
     print("Database updated successfully!")
