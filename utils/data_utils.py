@@ -30,12 +30,14 @@ def add_pills_filter_df(df=pd.DataFrame()):
     if df.shape[0] != 0:
         # Filter the DataFrame to include only selected categories
         filtered_df = df[df['crime_type'].isin(selection)].copy()
+        print(filtered_df.head())
         return filtered_df
     else:
         # Return a copy of the original DataFrame if it's empty
         return df.copy()
 
 def _generate_date_range(start_year, start_month, end_year, end_month):
+    # Gnerate date range
     dates = []
     year, month = start_year, start_month
 
@@ -47,12 +49,35 @@ def _generate_date_range(start_year, start_month, end_year, end_month):
         else:
             month += 1
     
-    return dates
+    # Create the extended dates list with at least 12 months
+    extended_dates = dates.copy()
+    
+    # If dates list already has 12 or more months, return it as is
+    if len(dates) >= 12:
+        return dates, extended_dates
+    
+    # Otherwise, extend the list backward to include at least 12 months
+    year, month = start_year, start_month
+    
+    while len(extended_dates) < 12:
+        # Move one month back
+        if month == 1:
+            year -= 1
+            month = 12
+        else:
+            month -= 1
+        
+        # Add the date at the beginning of the list
+        extended_dates.insert(0, f"{year:04d}-{month:02d}")
+    
+    return dates, extended_dates
 
 def add_start_end_month(key=""):
     month_names = ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sep", "Oct", "Nov", "Dec"]
     month_map = {i+1: name for i, name in enumerate(month_names)}
     reverse_month_map = {name: i+1 for i, name in enumerate(month_names)}
+    
+    # Get valid dates if not already in session state
     if key+"valid_dates" not in st.session_state:
         if st.session_state["db_connection"] != None:
             valid_dates = sorted(db.get_availability())
@@ -71,6 +96,8 @@ def add_start_end_month(key=""):
             "valid_years":valid_years,
             "valid_months":valid_months,
             }
+    
+    # Set default start and end dates if not already in session state
     if key+"start_date" not in st.session_state:
         valid_months = st.session_state[key+"valid_dates"]["valid_months"]
         valid_years = st.session_state[key+"valid_dates"]["valid_years"]
@@ -135,4 +162,33 @@ def add_start_end_month(key=""):
 
     start_month = reverse_month_map[start_month]
     end_month = reverse_month_map[end_month]
-    st.session_state[key+"list_crime_dates"]=_generate_date_range(start_year, start_month, end_year, end_month)
+    st.session_state[key+"list_crime_dates"],st.session_state[key+"stat_crime_dates"]=_generate_date_range(start_year, start_month, end_year, end_month)
+
+def add_area_plot_crime_statistics(df):
+    # 1. Group by month and crime_type to get counts
+    crime_counts = df.groupby([pd.Grouper(key='month', freq='M'), 'crime_type']).size().unstack(fill_value=0)
+
+    # 2. Reset index to make month a column
+    crime_counts = crime_counts.reset_index()
+
+    # 3. Set the month column as the index (required for Streamlit's area_chart)
+    crime_counts = crime_counts.set_index('month')
+
+    # 4. Display the area chart
+    st.title('Crime Counts by Type Over Time')
+    st.area_chart(crime_counts)
+
+def add_bar_plot_crime_statistics(df):
+    # Get total count for each crime type
+    crime_type_counts = df['crime_type'].value_counts().reset_index()
+    crime_type_counts.columns = ['crime_type', 'count']
+
+    # Sort by count (optional)
+    crime_type_counts = crime_type_counts.sort_values('count')
+
+    # Set crime_type as index for Streamlit's bar_chart
+    crime_type_counts = crime_type_counts.set_index('crime_type')
+
+    # Create bar chart
+    st.title('Total Crimes by Type')
+    st.bar_chart(crime_type_counts)

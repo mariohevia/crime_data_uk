@@ -64,9 +64,9 @@ if st.session_state["selected_location_area"]:
     zoom = 13
 
     # Filters the data to include only the crimes with certain categories
-    st.session_state["crime_data_area"] = add_pills_filter_df(st.session_state["crime_data_area"])
+    st.session_state["filtered_crime_data_area"] = add_pills_filter_df(st.session_state["crime_data_area"])
     # Count and plot crime occurrences
-    add_crime_counts_to_map(st.session_state["crime_data_area"], fg)
+    add_crime_counts_to_map(st.session_state["filtered_crime_data_area"], fg)
 else: 
     # Shows the pills
     add_pills_filter_df()
@@ -93,3 +93,10 @@ if st.session_state["selected_location_area"]:
     )
 else:
     st.subheader("Selected location")
+
+# Display crime statistics
+if st.session_state["selected_location_area"]:
+    add_area_plot_crime_statistics(st.session_state["filtered_crime_data_area"])
+    add_bar_plot_crime_statistics(st.session_state["filtered_crime_data_area"])
+else:
+    st.subheader("Crime statistics")

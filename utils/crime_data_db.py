@@ -51,6 +51,7 @@ def get_crime_street_level_point_dates(lat, lon, dates, radius_meters=1609.34):
     with st.session_state["db_connection"].cursor() as cur:
         date_start_fmt = f"{dates[0]}-01"
         date_end_fmt = f"{dates[-1]}-01"
+        print(lon, lat, radius_meters, date_start_fmt, date_end_fmt)
         cur.execute(query, (lon, lat, radius_meters, date_start_fmt, date_end_fmt))
         data = cur.fetchall()
     return pd.DataFrame(data, columns=['crime_type', 'crime_id', 'month', 'latitude', 'longitude'])

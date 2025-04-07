@@ -7,15 +7,15 @@ import shutil
 
 # PostgreSQL connection details
 # Check DB_HOST with "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' postgresql-server"
-DB_HOST = "172.17.0.2"
-DB_PORT = "5432"
-DB_NAME = "crime_uk"
-DB_USER = "postgres"
+DB_HOST = os.environ.get("DB_HOST")
+DB_PORT = os.environ.get("DB_PORT")
+DB_NAME = os.environ.get("DB_NAME")
+DB_USER = os.environ.get("DB_USER")
 DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 DATA_URL = "https://data.police.uk/data/archive/latest.zip"
-DOWNLOAD_PATH = "latest.zip"
-EXTRACT_PATH = "crime_data"
+DOWNLOAD_PATH = "../../latest.zip"
+EXTRACT_PATH = "../../crime_data"
 
 
 def getPaths(data_path = '.', ext=".csv"):
@@ -81,7 +81,7 @@ def process_and_load_data():
                 geom_value = f"ST_SetSRID(ST_MakePoint({row['Longitude']}, {row['Latitude']}), 4326)"
             cursor.execute("""
                 INSERT INTO crimes (crime_id, month, reported_by, falls_within, longitude, latitude, location, lsoa_code, lsoa_name, crime_type, last_outcome_category, context, geom)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326))
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography)
                 ON CONFLICT (crime_id) 
                 DO UPDATE SET 
                     month = EXCLUDED.month,
@@ -125,4 +125,3 @@ if __name__ == "__main__":
     extract_data()
     process_and_load_data()
     remove_downloaded_files()
-
