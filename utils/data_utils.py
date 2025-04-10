@@ -168,7 +168,23 @@ def add_start_end_month(key=""):
     end_month = reverse_month_map[end_month]
     st.session_state[key+"list_crime_dates"],st.session_state[key+"stat_crime_dates"]=_generate_date_range(start_year, start_month, end_year, end_month)
 
-def add_area_plot_crime_statistics(df):
+def add_area_line_plot_crime_statistics(df, key):
+    if key+"chart_type" not in st.session_state:
+        st.session_state[key+"chart_type"] = False
+
+    def on_change():
+        st.session_state[key+"chart_type"] = not st.session_state[key+"chart_type"]
+
+    col1, col2 = st.columns([0.75, 0.25], vertical_alignment="bottom")
+    with col1:
+        st.subheader('Crime Counts by Type Over Time')
+    with col2:
+        st.toggle(
+            label="Chart: Line plot" if st.session_state[key+"chart_type"] else "Chart: Area plot",
+            value=st.session_state[key+"chart_type"],
+            on_change=on_change,
+        )
+
     # Group by month and crime_type to get counts
     crime_counts = df.groupby([pd.Grouper(key='month', freq='ME'), 'crime_type']).size().reset_index(name='count')
     crime_counts.columns = ['Month', 'Crime Type', 'Count']
@@ -183,22 +199,36 @@ def add_area_plot_crime_statistics(df):
     crime_counts['CrimeTypeRank'] = crime_counts['Crime Type'].map(crime_type_rank)
 
     # Create the Altair chart
-    chart = alt.Chart(crime_counts).mark_area().encode(
-        x=alt.X('Month:T', title='Month'),
-        y=alt.Y('Count:Q', title='Number of Crimes', stack=True),
-        color=alt.Color('Crime Type:N', 
-                        title='Crime Type', 
-                        sort=crime_type_order,
-                        ).scale(scheme='tableau20'),
-        order=alt.Order(
-            'CrimeTypeRank:O',
-            sort='descending'
-        ),
-        tooltip=['Month', 'Crime Type', 'Count']
-    )
+    if st.session_state[key+"chart_type"]:
+        chart = alt.Chart(crime_counts).mark_line().encode(
+            x=alt.X('Month:T', title='Month'),
+            y=alt.Y('Count:Q', title='Number of Crimes'),
+            color=alt.Color('Crime Type:N', 
+                            title='Crime Type', 
+                            sort=crime_type_order[::-1],
+                            ).scale(scheme='tableau20'),
+            order=alt.Order(
+                'CrimeTypeRank:O',
+                sort='ascending'
+            ),
+            tooltip=['Month', 'Crime Type', 'Count']
+        )
+    else:
+        chart = alt.Chart(crime_counts).mark_area().encode(
+            x=alt.X('Month:T', title='Month'),
+            y=alt.Y('Count:Q', title='Number of Crimes', stack=True),
+            color=alt.Color('Crime Type:N', 
+                            title='Crime Type', 
+                            sort=crime_type_order,
+                            ).scale(scheme='tableau20'),
+            order=alt.Order(
+                'CrimeTypeRank:O',
+                sort='descending'
+            ),
+            tooltip=['Month', 'Crime Type', 'Count']
+        )
 
     # Display the chart
-    st.subheader('Crime Counts by Type Over Time')
     st.altair_chart(chart, use_container_width=True)
 
 def add_bar_plot_crime_statistics(df):
