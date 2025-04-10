@@ -89,7 +89,7 @@ else:
 
 # Display crime statistics
 if st.session_state["selected_location_click"]:
-    dutils.add_area_plot_crime_statistics(st.session_state["filtered_crime_data_clickable"])
+    dutils.add_area_line_plot_crime_statistics(st.session_state["filtered_crime_data_clickable"], key="map_click_")
     dutils.add_bar_plot_crime_statistics(st.session_state["filtered_crime_data_clickable"])
 else:
     st.subheader("Crime statistics")
