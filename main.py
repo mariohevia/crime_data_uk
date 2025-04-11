@@ -14,10 +14,13 @@ map_postcode_page = st.Page(
 map_area_page = st.Page(
     "maps/map_area.py", title="Area Crime Map", icon=":material/polyline:", default=False
 )
+llm_page = st.Page(
+    "llm/chat.py", title="Chat", icon=":material/chat:", default=False
+)
 
 pg = st.navigation(
         {
-            "Interactive Crime Maps": [map_click_page, map_postcode_page, map_area_page],
+            "Interactive Crime Maps": [map_click_page, map_postcode_page, map_area_page, llm_page],
         }
     )
     
