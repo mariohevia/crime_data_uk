@@ -36,13 +36,38 @@ def add_pills_filter_df(df=pd.DataFrame(columns=api.DF_COLUMNS)):
         # Return a copy of the original DataFrame if it's empty
         return df.copy()
 
-def _generate_date_range(start_year, start_month, end_year, end_month):
+def _generate_date_range_extended(start_year, start_month, end_year, end_month):
+    """
+    Generate a date range between two points in time, along with an extended version.
+    
+    This function creates two lists of dates in YYYY-MM format:
+    1. 'dates': Contains all months from start date to end date (inclusive)
+    2. 'extended_dates': Contains at least 12 months, extending backward from start date if needed
+    
+    Parameters:
+    -----------
+    start_year : int
+        Starting year for the date range
+    start_month : int
+        Starting month (1-12) for the date range
+    end_year : int
+        Ending year for the date range
+    end_month : int
+        Ending month (1-12) for the date range
+        
+    Returns:
+    --------
+    tuple
+        (dates, extended_dates) where both are lists of strings in 'YYYY-MM' format
+    """
     # Gnerate date range
     dates = []
     year, month = start_year, start_month
 
     while (year, month) <= (end_year, end_month):
+        # Format date as YYYY-MM with zero padding
         dates.append(f"{year:04d}-{month:02d}")
+        # Move to next month
         if month == 12:
             year += 1
             month = 1
@@ -166,7 +191,7 @@ def add_start_end_month(key=""):
 
     start_month = reverse_month_map[start_month]
     end_month = reverse_month_map[end_month]
-    st.session_state[key+"list_crime_dates"],st.session_state[key+"stat_crime_dates"]=_generate_date_range(start_year, start_month, end_year, end_month)
+    st.session_state[key+"list_crime_dates"],st.session_state[key+"stat_crime_dates"]=_generate_date_range_extended(start_year, start_month, end_year, end_month)
 
 def add_area_line_plot_crime_statistics(df, key):
     if key+"chart_type" not in st.session_state:
