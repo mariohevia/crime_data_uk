@@ -127,7 +127,11 @@ def tool_get_crime_street_level_point_dates(lat, lon, start_year, start_month, e
     if st.session_state["db_connection"] != None:
         df = db.get_crime_street_level_point_dates(lat, lon, dates)
     else:
-        df = api.get_crime_street_level_point_dates(lat, lon, dates)
+        list_crimes, status_code = api.get_crime_street_level_point_dates(lat, lon, dates)
+        if status_code != 200:
+            return f"Connection problem with police API endpoint. Status code: {status_code}"
+        else:
+            df = api.list_crimes_to_df(list_crimes)
     stats_as_str = _process_df_stats_into_str(df)
     return stats_as_str
 
