@@ -314,3 +314,7 @@ def chat_stream(response):
 
 def save_feedback(index):
     st.session_state.history[index]["feedback"] = st.session_state[f"feedback_{index}"]
+
+@st.dialog("Error encountered with Mistral AI API")
+def show_llm_error(e):
+    st.error(e)
